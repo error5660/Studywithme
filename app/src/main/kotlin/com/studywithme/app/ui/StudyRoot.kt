@@ -61,6 +61,7 @@ import com.studywithme.app.ui.components.LocalHaze
 import com.studywithme.app.ui.components.glass
 import com.studywithme.app.ui.screens.CalendarScreen
 import com.studywithme.app.ui.screens.HomeScreen
+import com.studywithme.app.ui.screens.LockSetupScreen
 import com.studywithme.app.ui.screens.PlaceholderScreen
 import com.studywithme.app.ui.screens.SettingsScreen
 import com.studywithme.app.ui.screens.TimerScreen
@@ -70,8 +71,9 @@ import com.studywithme.app.ui.theme.LocalWarm
 import com.studywithme.app.ui.theme.StudyTheme
 import dev.chrisbanes.haze.HazeState
 
+/** The shared look of every activity: theme, warm background, Haze, locals and the alert pulse. */
 @Composable
-fun StudyRoot() {
+fun StudyShell(content: @Composable () -> Unit) {
     val container = (LocalContext.current.applicationContext as StudyApp).container
     // Wait for the saved settings so night-mode users never see a light flash.
     val settings: Settings = container.settingsRepo.flow.collectAsStateWithLifecycle(null).value ?: return
@@ -88,14 +90,19 @@ fun StudyRoot() {
         }
         CompositionLocalProvider(LocalContainer provides container, LocalSettings provides settings, LocalHaze provides haze) {
             KeepScreenOnWhileRunning()
-            AskNotificationPermission()
             Box(Modifier.fillMaxSize()) {
                 WarmBackground(haze)
-                AppContent()
+                content()
                 PulseOverlay()
             }
         }
     }
+}
+
+@Composable
+fun StudyRoot() = StudyShell {
+    AskNotificationPermission()
+    AppContent()
 }
 
 /** Asks for the notification permission on first launch; reminders cannot show without it. */
@@ -128,14 +135,18 @@ private fun AppContent() {
     val container = LocalContainer.current
     val status = container.engine.state.collectAsStateWithLifecycle().value.status
     var timerOpen by rememberSaveable { mutableStateOf(false) }
+    var lockSetupOpen by rememberSaveable { mutableStateOf(false) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // The timer screen only makes sense while a session exists.
     val showTimer = timerOpen && status != TimerStatus.Idle
 
     // One screen at a time: composing both would blur two sets of glass cards at once.
-    Crossfade(showTimer, animationSpec = tween(260)) { timer ->
-        if (timer) TimerScreen(onClose = { timerOpen = false })
-        else MainScaffold(tab, { tab = it }, onOpenTimer = { timerOpen = true })
+    Crossfade(if (lockSetupOpen) 2 else if (showTimer) 1 else 0, animationSpec = tween(260)) { screen ->
+        when (screen) {
+            2 -> LockSetupScreen(onClose = { lockSetupOpen = false })
+            1 -> TimerScreen(onClose = { timerOpen = false })
+            else -> MainScaffold(tab, { tab = it }, onOpenTimer = { timerOpen = true }, onOpenLock = { lockSetupOpen = true })
+        }
     }
     BackHandler(showTimer) { timerOpen = false }
 }
@@ -143,7 +154,7 @@ private fun AppContent() {
 private val TabLabels = listOf(R.string.tab_home, R.string.tab_calendar, R.string.tab_log, R.string.tab_tools, R.string.tab_settings)
 
 @Composable
-private fun MainScaffold(tab: Int, onTab: (Int) -> Unit, onOpenTimer: () -> Unit) {
+private fun MainScaffold(tab: Int, onTab: (Int) -> Unit, onOpenTimer: () -> Unit, onOpenLock: () -> Unit) {
     val layout = rememberLayout()
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val dir = LocalLayoutDirection.current
@@ -159,7 +170,7 @@ private fun MainScaffold(tab: Int, onTab: (Int) -> Unit, onOpenTimer: () -> Unit
                 TabContent(
                     tab,
                     PaddingValues(start = 20.dp, end = insets.calculateRightPadding(dir) + 20.dp, top = insets.calculateTopPadding() + 16.dp, bottom = insets.calculateBottomPadding() + 16.dp),
-                    onOpenTimer,
+                    onOpenTimer, onOpenLock,
                 )
             }
         }
@@ -171,7 +182,7 @@ private fun MainScaffold(tab: Int, onTab: (Int) -> Unit, onOpenTimer: () -> Unit
                     start = insets.calculateLeftPadding(dir) + 20.dp, end = insets.calculateRightPadding(dir) + 20.dp,
                     top = insets.calculateTopPadding() + 12.dp, bottom = insets.calculateBottomPadding() + BottomBarHeight + 36.dp,
                 ),
-                onOpenTimer,
+                onOpenTimer, onOpenLock,
             )
             GlassBottomBar(
                 tab, onTab,
@@ -183,10 +194,10 @@ private fun MainScaffold(tab: Int, onTab: (Int) -> Unit, onOpenTimer: () -> Unit
 }
 
 @Composable
-private fun TabContent(tab: Int, padding: PaddingValues, onOpenTimer: () -> Unit) {
+private fun TabContent(tab: Int, padding: PaddingValues, onOpenTimer: () -> Unit, onOpenLock: () -> Unit) {
     Crossfade(tab, animationSpec = tween(220), modifier = Modifier.widthIn(max = 1100.dp)) { t ->
         when (t) {
-            0 -> HomeScreen(padding, onOpenTimer)
+            0 -> HomeScreen(padding, onOpenTimer, onOpenLock)
             1 -> CalendarScreen(padding)
             2 -> PlaceholderScreen(R.string.tab_log, padding)
             3 -> ToolsScreen(padding)

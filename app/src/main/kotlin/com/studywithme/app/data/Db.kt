@@ -170,6 +170,24 @@ interface TaskDao {
     suspend fun delete(task: Task)
 }
 
+/** One row per time the focus lock was ended early with the password. Feeds the stats and the weekly report. */
+@Entity(tableName = "early_unlocks")
+data class EarlyUnlock(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val atMs: Long,
+    val remainingMs: Long,
+    val lockStartMs: Long,
+)
+
+@Dao
+interface EarlyUnlockDao {
+    @Insert
+    suspend fun insert(unlock: EarlyUnlock): Long
+
+    @Query("SELECT COUNT(*) FROM early_unlocks")
+    fun observeCount(): Flow<Int>
+}
+
 @Dao
 interface ProgressDao {
     @Query("SELECT * FROM subject_progress")
@@ -183,9 +201,9 @@ interface ProgressDao {
 }
 
 @Database(
-    entities = [Subject::class, StudySession::class, CalendarEvent::class, Task::class, SubjectProgress::class],
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    entities = [Subject::class, StudySession::class, CalendarEvent::class, Task::class, SubjectProgress::class, EarlyUnlock::class],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -194,4 +212,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun eventDao(): EventDao
     abstract fun taskDao(): TaskDao
     abstract fun progressDao(): ProgressDao
+    abstract fun earlyUnlockDao(): EarlyUnlockDao
 }

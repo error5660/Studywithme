@@ -64,7 +64,7 @@ fun formatDuration(ms: Long): String {
 }
 
 @Composable
-fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit) {
+fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit, onOpenLock: () -> Unit) {
     val c = LocalContainer.current
     val layout = rememberLayout()
     val timer by c.engine.state.collectAsStateWithLifecycle()
@@ -78,6 +78,7 @@ fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit) {
                 Hero(totals.totalMs, heroStyle)
                 ActiveCard(timer, subjects, totals, onOpenTimer)
                 DdayCard()
+                LockCard(onOpenLock)
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 TodoCard()
@@ -91,6 +92,7 @@ fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit) {
             DdayCard()
             TodoCard()
             SubjectList(subjects, timer, totals, onOpenTimer)
+            LockCard(onOpenLock)
         }
     }
 }
@@ -169,6 +171,21 @@ fun PlaceholderScreen(titleRes: Int, padding: PaddingValues) {
             Text(stringResource(R.string.placeholder_title), style = AppText.bodyMedium)
             Spacer(Modifier.height(4.dp))
             Text(stringResource(R.string.placeholder_body), style = AppText.caption, color = w.inkSoft)
+        }
+    }
+}
+
+/** Entry to the focus lock: kept low-key because the lock is a deliberate choice, not a daily default. */
+@Composable
+private fun LockCard(onOpen: () -> Unit) {
+    val w = LocalWarm.current
+    GlassCard(Modifier.fillMaxWidth(), onClick = onOpen) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.lock_card_title), style = AppText.bodyMedium)
+                Text(stringResource(R.string.lock_card_desc), style = AppText.caption, color = w.inkSoft)
+            }
+            Text(stringResource(R.string.lock_card_open), style = AppText.label, color = w.accent)
         }
     }
 }

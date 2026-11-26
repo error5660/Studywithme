@@ -180,15 +180,25 @@ private val DigitsOnly = InputTransformation { if (!asCharSequence().all { it.is
 
 /** Single-line text field with a small label and an underline, matching the minimal look of the app. */
 @Composable
-fun LabeledTextField(label: String, state: TextFieldState, modifier: Modifier = Modifier, numeric: Boolean = false, maxLength: Int = 30) {
+fun LabeledTextField(
+    label: String,
+    state: TextFieldState,
+    modifier: Modifier = Modifier,
+    numeric: Boolean = false,
+    maxLength: Int = 30,
+    /** Overrides the default input filter (used by the password fields). */
+    transformation: InputTransformation? = null,
+    keyboardType: KeyboardType? = null,
+) {
     val w = LocalWarm.current
     Column(modifier) {
         Text(label, style = AppText.caption, color = w.inkSoft)
         BasicTextField(
             state = state,
             lineLimits = TextFieldLineLimits.SingleLine,
-            inputTransformation = if (numeric) DigitsOnly.then(InputTransformation.maxLengthTrim(5)) else InputTransformation.maxLengthTrim(maxLength),
-            keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text),
+            inputTransformation = transformation
+                ?: if (numeric) DigitsOnly.then(InputTransformation.maxLengthTrim(5)) else InputTransformation.maxLengthTrim(maxLength),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType ?: if (numeric) KeyboardType.Number else KeyboardType.Text),
             textStyle = AppText.body.copy(color = w.ink),
             cursorBrush = SolidColor(w.accent),
             modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
@@ -229,6 +239,7 @@ fun WarmDialog(
     confirmText: String,
     onConfirm: () -> Unit,
     confirmEnabled: Boolean = true,
+    dismissText: String = stringResource(R.string.common_cancel),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val w = LocalWarm.current
@@ -239,6 +250,6 @@ fun WarmDialog(
         title = { Text(title, style = AppText.bodyMedium) },
         text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp), content = content) },
         confirmButton = { TextAction(confirmText, { if (confirmEnabled) onConfirm() }, color = if (confirmEnabled) w.accent else w.inkFaint) },
-        dismissButton = { TextAction(stringResource(R.string.common_cancel), onDismiss, color = w.inkSoft) },
+        dismissButton = { TextAction(dismissText, onDismiss, color = w.inkSoft) },
     )
 }

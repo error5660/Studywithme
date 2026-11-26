@@ -72,7 +72,26 @@ class ReminderScheduler(private val context: Context) {
         }
     }
 
-    companion object { const val ACTION_ALARM = "com.studywithme.app.REMINDER" }
+    private fun lockEndPending() = PendingIntent.getBroadcast(
+        context, 1, Intent(context, ReminderReceiver::class.java).setAction(ACTION_LOCK_END),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    /** A separate exact alarm that ends the focus lock on time even if the app process was killed. */
+    fun scheduleLockEnd(endMs: Long) {
+        try {
+            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endMs, lockEndPending())
+        } catch (e: SecurityException) {
+            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endMs, lockEndPending())
+        }
+    }
+
+    fun cancelLockEnd() = alarms.cancel(lockEndPending())
+
+    companion object {
+        const val ACTION_ALARM = "com.studywithme.app.REMINDER"
+        const val ACTION_LOCK_END = "com.studywithme.app.LOCK_END"
+    }
 }
 
 /** Posts reminder notifications; the channel is chosen by the current quiet-mode setting. */
@@ -87,6 +106,7 @@ class Notifier(private val context: Context) {
             ) else setSound(null, null)
             enableVibration(vibrate)
         }
+        nm.createNotificationChannel(NotificationChannel(CH_LOCK, context.getString(R.string.channel_lock), NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannels(listOf(
             channel(CH_NORMAL, R.string.channel_reminder_normal, sound = true, vibrate = true),
             channel(CH_VIBRATE, R.string.channel_reminder_vibrate, sound = false, vibrate = true),
@@ -109,7 +129,19 @@ class Notifier(private val context: Context) {
         nm.notify(event.id.toInt(), n)
     }
 
+    fun postLockEnded(quiet: QuietMode) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+        val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val channel = when (quiet) { QuietMode.Normal -> CH_NORMAL; QuietMode.Vibrate -> CH_VIBRATE; QuietMode.Silent -> CH_SILENT }
+        nm.notify(LOCK_ENDED_ID, NotificationCompat.Builder(context, channel)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.lock_ended_title)).setContentText(context.getString(R.string.lock_ended_body))
+            .setAutoCancel(true).setContentIntent(open).build())
+    }
+
     companion object {
+        const val LOCK_ENDED_ID = 7002
+        const val CH_LOCK = "lock_status"
         const val CH_NORMAL = "reminder_normal"
         const val CH_VIBRATE = "reminder_vibrate"
         const val CH_SILENT = "reminder_silent"
@@ -125,6 +157,7 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 val events = c.db.eventDao().getAll()
                 val quiet = c.settingsRepo.flow.first().quiet
+                if (intent.action == ReminderScheduler.ACTION_LOCK_END) c.lock.endIfExpired() else c.lock.restore() // restore covers reboot and app update
                 if (intent.action == ReminderScheduler.ACTION_ALARM) {
                     dueReminders(events, System.currentTimeMillis(), 2 * 60_000L, ZoneId.systemDefault())
                         .forEach { (e, _) -> c.notifier.postReminder(e, quiet) }

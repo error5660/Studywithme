@@ -15,6 +15,8 @@ import com.studywithme.app.data.SettingsRepo
 import com.studywithme.app.data.seedCalendar
 import com.studywithme.app.reminders.Notifier
 import com.studywithme.app.reminders.ReminderScheduler
+import com.studywithme.app.lock.LockController
+import com.studywithme.app.lock.LockRepo
 import com.studywithme.app.timer.Alerter
 import com.studywithme.app.timer.DndController
 import com.studywithme.app.timer.TimerEngine
@@ -63,12 +65,16 @@ class AppContainer(app: Application) {
     var carryPromptDismissed = false
     val dnd = DndController(app, settingsRepo)
 
+    private val lockRepo = LockRepo(app)
+
     val engine = TimerEngine(
         settings = { settings },
         saveSession = { s -> scope.launch(Dispatchers.IO) { db.sessionDao().insert(s) } },
         rt = SystemClock::elapsedRealtime,
         wall = System::currentTimeMillis,
     )
+
+    val lock = LockController(app, lockRepo, db, engine, scope, reminders, notifier, alerter, quiet = { settings.quiet })
 
     /** Wall-clock ticker for the UI; collected with lifecycle awareness so it stops in the background. */
     val tick: Flow<Long> = flow {
@@ -106,12 +112,14 @@ class AppContainer(app: Application) {
         // Do Not Disturb follows "timer is running"; on the first emission it also repairs a state left by a crash.
         scope.launch {
             combine(
-                engine.state.map { it.running }.distinctUntilChanged(),
+                combine(engine.state.map { it.running }, lock.active) { running, locked -> running || locked }.distinctUntilChanged(),
                 settingsRepo.flow.map { it.autoDnd }.distinctUntilChanged(),
             ) { running, auto -> running && auto }
                 .distinctUntilChanged()
                 .collect { if (it) dnd.enable() else dnd.restore() }
         }
+
+        lock.restore()
 
         // Leaving the app pauses the timer (unless the focus lock is on).
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
