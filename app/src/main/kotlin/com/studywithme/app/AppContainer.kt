@@ -17,6 +17,15 @@ import com.studywithme.app.data.studyDay
 import com.studywithme.app.data.studyDayStart
 import com.studywithme.app.data.DAY_MS
 import com.studywithme.app.usage.UsageHelper
+import com.studywithme.app.backup.BackupManager
+import com.studywithme.app.noise.NoiseController
+import com.studywithme.app.photos.PhotoStore
+import com.studywithme.app.reminders.ReportService
+import com.studywithme.app.timer.Phase
+import com.studywithme.app.widget.OverviewWidget
+import com.studywithme.app.widget.TodayWidget
+import androidx.glance.appwidget.updateAll
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.studywithme.app.reminders.Notifier
 import com.studywithme.app.reminders.ReminderScheduler
 import com.studywithme.app.lock.LockController
@@ -35,10 +44,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 /** Hand-rolled service locator: one place that owns the database, settings and timer. */
-class AppContainer(app: Application) {
+class AppContainer(private val app: Application) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val defaultSubjects = app.resources.getStringArray(R.array.default_subjects)
@@ -63,6 +73,32 @@ class AppContainer(app: Application) {
 
     val alerter = Alerter(app)
     val usage = UsageHelper(app)
+    val photos = PhotoStore(app)
+    val reports = ReportService(db, usage)
+    val backup = BackupManager(app, db, settingsRepo, photos)
+    val noise = NoiseController(scope)
+
+    /** True for a few seconds after "미리 듣기" is pressed, so the noise can be tried without starting the timer. */
+    val noisePreview = MutableStateFlow(false)
+    private var previewJob: kotlinx.coroutines.Job? = null
+
+    fun previewNoise() {
+        previewJob?.cancel()
+        noisePreview.value = true
+        previewJob = scope.launch { delay(15_000); noisePreview.value = false }
+    }
+
+    /** Today's study time in ms, saved sessions plus the running segment. */
+    suspend fun todayStudyMs(): Long {
+        val now = System.currentTimeMillis()
+        val start = studyDayStart(now)
+        return withContext(Dispatchers.IO) { db.sessionDao().getBetween(start, start + DAY_MS) }
+            .sumOf { minOf(it.endMs, now) - maxOf(it.startMs, start) } + engine.state.value.liveFocusMs(SystemClock.elapsedRealtime())
+    }
+
+    private suspend fun updateWidgets() {
+        try { TodayWidget().updateAll(app); OverviewWidget().updateAll(app) } catch (e: Exception) { /* no widget placed yet */ }
+    }
     val notifier = Notifier(app)
     val reminders = ReminderScheduler(app)
 
@@ -126,6 +162,22 @@ class AppContainer(app: Application) {
 
         lock.restore()
 
+        // White noise plays while a focus phase is running (or while previewing).
+        scope.launch {
+            combine(engine.state, settingsRepo.flow, noisePreview) { t, st, preview -> Triple(st.noiseKind, st.noiseVolume, (t.running && t.phase == Phase.Focus) || preview) }
+                .distinctUntilChanged().collect { (kind, volume, play) -> noise.apply(kind, volume, play) }
+        }
+        // Home-screen widgets follow the timer and the calendar, and tick once a minute while studying.
+        scope.launch {
+            combine(engine.state.map { it.status }.distinctUntilChanged(), db.eventDao().observeAll()) { _, _ -> }
+                .collect { delay(800); updateWidgets() }
+        }
+        scope.launch { while (isActive) { delay(60_000); if (engine.state.value.running) updateWidgets() } }
+        scope.launch(Dispatchers.IO) {
+            reports.ensureLatest()?.let { notifier.postWeeklyReport(it.totalMs, it.prevTotalMs, settings.quiet) }
+            reminders.scheduleDaily(); reminders.scheduleWeekly()
+        }
+
         // "Daily goal reached" notification: checked every 30 s while a session is running, sent once per study day.
         scope.launch(Dispatchers.IO) {
             while (isActive) {
@@ -134,9 +186,7 @@ class AppContainer(app: Application) {
                 val now = System.currentTimeMillis()
                 val day = studyDay(now).toEpochDay()
                 if (settingsRepo.goalNotifiedDay() == day) continue
-                val start = studyDayStart(now)
-                val studied = db.sessionDao().getBetween(start, start + DAY_MS).sumOf { minOf(it.endMs, now) - maxOf(it.startMs, start) } +
-                    engine.state.value.liveFocusMs(SystemClock.elapsedRealtime())
+                val studied = todayStudyMs()
                 if (studied >= settings.dailyGoalMin * 60_000L) {
                     settingsRepo.markGoalNotified(day)
                     val minutes = (studied / 60_000).toInt()

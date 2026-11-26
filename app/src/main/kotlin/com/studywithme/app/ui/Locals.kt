@@ -15,6 +15,12 @@ import java.util.Locale
 val LocalContainer = staticCompositionLocalOf<AppContainer> { error("AppContainer was not provided") }
 val LocalSettings = compositionLocalOf { Settings() }
 
+/** Full-screen screens that sit above the tabs. */
+const val OVERLAY_LOCK = 2
+const val OVERLAY_NOTEBOOK = 3
+const val OVERLAY_SCORES = 4
+val LocalOpenOverlay = staticCompositionLocalOf<(Int) -> Unit> { {} }
+
 /** Screen-size rules shared by every screen so phone/tablet and portrait/landscape stay consistent. */
 class LayoutInfo(val widthDp: Int, val heightDp: Int) {
     val landscape get() = widthDp > heightDp

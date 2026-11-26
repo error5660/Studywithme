@@ -10,9 +10,12 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class QuietMode { Normal, Vibrate, Silent }
 
+@Serializable
 data class Settings(
     val pomodoroOn: Boolean = false,
     val focusMin: Int = 50,
@@ -24,6 +27,11 @@ data class Settings(
     val autoDnd: Boolean = false,
     val night: Boolean = false,
     val dailyGoalMin: Int = 360,
+    /** 0 = 5등급제 (1-5), 1 = 성취도 (A-E). */
+    val gradeScale: Int = 0,
+    /** 0 = off, 1 = rain, 2 = cafe, 3 = fan. */
+    val noiseKind: Int = 0,
+    val noiseVolume: Int = 40,
 )
 
 private val Context.dataStore by preferencesDataStore("settings")
@@ -39,6 +47,9 @@ private object Keys {
     val autoDnd = booleanPreferencesKey("auto_dnd")
     val night = booleanPreferencesKey("night_mode")
     val dailyGoalMin = intPreferencesKey("daily_goal_min")
+    val gradeScale = intPreferencesKey("grade_scale")
+    val noiseKind = intPreferencesKey("noise_kind")
+    val noiseVolume = intPreferencesKey("noise_volume")
     val goalNotifiedDay = longPreferencesKey("goal_notified_day")
     val savedDndFilter = intPreferencesKey("saved_dnd_filter")
     val eventsSeeded = booleanPreferencesKey("events_seeded")
@@ -57,6 +68,9 @@ private fun Preferences.toSettings(): Settings {
         autoDnd = this[Keys.autoDnd] ?: d.autoDnd,
         night = this[Keys.night] ?: d.night,
         dailyGoalMin = this[Keys.dailyGoalMin] ?: d.dailyGoalMin,
+        gradeScale = this[Keys.gradeScale] ?: d.gradeScale,
+        noiseKind = this[Keys.noiseKind] ?: d.noiseKind,
+        noiseVolume = this[Keys.noiseVolume] ?: d.noiseVolume,
     )
 }
 
@@ -76,6 +90,9 @@ class SettingsRepo(private val context: Context) {
             p[Keys.autoDnd] = s.autoDnd
             p[Keys.night] = s.night
             p[Keys.dailyGoalMin] = s.dailyGoalMin
+            p[Keys.gradeScale] = s.gradeScale
+            p[Keys.noiseKind] = s.noiseKind
+            p[Keys.noiseVolume] = s.noiseVolume
         }
     }
 

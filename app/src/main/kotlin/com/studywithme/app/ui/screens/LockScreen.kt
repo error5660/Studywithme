@@ -68,9 +68,11 @@ fun LockScreen(onDone: () -> Unit) {
     var picked by remember { mutableStateOf<Long?>(null) }
     var early by remember { mutableIntStateOf(0) } // 0 none, 1 password, 2 waiting
     var showTimetable by remember { mutableStateOf(false) }
+    var showReview by remember { mutableStateOf(false) }
 
     BackHandler(true) {} // the lock screen cannot be left with the back button
     BackHandler(showTimetable) { showTimetable = false }
+    BackHandler(showReview) { showReview = false }
     val state = lock ?: return
     // Null above means "still loading"; once loaded, a finished lock closes this screen.
     LaunchedEffect(state.endMs, now / 1000) { if (!state.active(now)) onDone() }
@@ -116,6 +118,7 @@ fun LockScreen(onDone: () -> Unit) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextAction(stringResource(R.string.lock_timetable), { showTimetable = true }, color = w.inkSoft)
+            TextAction(stringResource(R.string.lock_review), { showReview = true }, color = w.inkSoft)
             TextAction(stringResource(R.string.lock_call), { context.startActivity(Intent(Intent.ACTION_DIAL).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }, color = w.inkSoft)
             TextAction(stringResource(R.string.lock_early), { early = 1 }, color = w.inkSoft)
         }
@@ -141,6 +144,9 @@ fun LockScreen(onDone: () -> Unit) {
                 TimetableScreen(embedded = true, onClose = { showTimetable = false })
             }
         }
+    }
+    if (showReview) {
+        Box(Modifier.fillMaxSize()) { ReviewScreen(embedded = true, onClose = { showReview = false }) }
     }
     when (early) {
         1 -> PasswordGateDialog(onDismiss = { early = 0 }, onVerified = { early = 2 })

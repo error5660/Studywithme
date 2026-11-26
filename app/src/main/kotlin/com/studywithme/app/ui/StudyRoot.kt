@@ -63,6 +63,8 @@ import com.studywithme.app.ui.screens.CalendarScreen
 import com.studywithme.app.ui.screens.FocusRatingHost
 import com.studywithme.app.ui.screens.HomeScreen
 import com.studywithme.app.ui.screens.LockSetupScreen
+import com.studywithme.app.ui.screens.NotebookScreen
+import com.studywithme.app.ui.screens.ScoresScreen
 import com.studywithme.app.ui.screens.LogScreen
 import com.studywithme.app.ui.screens.PlaceholderScreen
 import com.studywithme.app.ui.screens.SettingsScreen
@@ -138,17 +140,21 @@ private fun AppContent() {
     val container = LocalContainer.current
     val status = container.engine.state.collectAsStateWithLifecycle().value.status
     var timerOpen by rememberSaveable { mutableStateOf(false) }
-    var lockSetupOpen by rememberSaveable { mutableStateOf(false) }
+    var overlay by rememberSaveable { mutableIntStateOf(0) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     // The timer screen only makes sense while a session exists.
     val showTimer = timerOpen && status != TimerStatus.Idle
 
     // One screen at a time: composing both would blur two sets of glass cards at once.
-    Crossfade(if (lockSetupOpen) 2 else if (showTimer) 1 else 0, animationSpec = tween(260)) { screen ->
-        when (screen) {
-            2 -> LockSetupScreen(onClose = { lockSetupOpen = false })
-            1 -> TimerScreen(onClose = { timerOpen = false })
-            else -> MainScaffold(tab, { tab = it }, onOpenTimer = { timerOpen = true }, onOpenLock = { lockSetupOpen = true })
+    CompositionLocalProvider(LocalOpenOverlay provides { overlay = it }) {
+        Crossfade(if (overlay != 0) overlay else if (showTimer) 1 else 0, animationSpec = tween(260)) { screen ->
+            when (screen) {
+                OVERLAY_LOCK -> LockSetupScreen(onClose = { overlay = 0 })
+                OVERLAY_NOTEBOOK -> NotebookScreen(onClose = { overlay = 0 })
+                OVERLAY_SCORES -> ScoresScreen(onClose = { overlay = 0 })
+                1 -> TimerScreen(onClose = { timerOpen = false })
+                else -> MainScaffold(tab, { tab = it }, onOpenTimer = { timerOpen = true }, onOpenLock = { overlay = OVERLAY_LOCK })
+            }
         }
     }
     BackHandler(showTimer) { timerOpen = false }

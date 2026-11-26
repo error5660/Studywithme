@@ -31,7 +31,8 @@ fun LogScreen(padding: PaddingValues) {
             Text(stringResource(R.string.log_title), style = AppText.title, modifier = Modifier.weight(1f))
             Chip(stringResource(R.string.log_tab_timetable), page == 0, { page = 0 })
             Chip(stringResource(R.string.log_tab_stats), page == 1, { page = 1 })
+            Chip(stringResource(R.string.log_tab_report), page == 2, { page = 2 })
         }
-        if (page == 0) TimetableScreen() else StatsScreen()
+        when (page) { 0 -> TimetableScreen(); 1 -> StatsScreen(); else -> ReportsScreen() }
     }
 }

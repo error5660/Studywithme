@@ -18,7 +18,9 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.maxLengthTrim
 import androidx.compose.foundation.text.input.then
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.input.KeyboardType
@@ -240,10 +242,14 @@ fun WarmDialog(
     onConfirm: () -> Unit,
     confirmEnabled: Boolean = true,
     dismissText: String = stringResource(R.string.common_cancel),
+    /** Nearly full width, for dialogs that show photos. */
+    wide: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val w = LocalWarm.current
     AlertDialog(
+        modifier = if (wide) Modifier.padding(horizontal = 12.dp).widthIn(max = 720.dp) else Modifier,
+        properties = DialogProperties(usePlatformDefaultWidth = !wide),
         onDismissRequest = onDismiss,
         containerColor = w.dialog, titleContentColor = w.ink, textContentColor = w.ink,
         shape = RoundedCornerShape(20.dp),

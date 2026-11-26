@@ -5,6 +5,7 @@ import android.provider.Settings as AndroidSettings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +38,8 @@ import com.studywithme.app.ui.components.GlassCard
 import com.studywithme.app.ui.components.Hairline
 import com.studywithme.app.ui.components.PrimaryButton
 import com.studywithme.app.ui.components.SectionTitle
+import com.studywithme.app.ui.components.SoftButton
+import kotlinx.coroutines.launch
 import com.studywithme.app.ui.components.SelectRow
 import com.studywithme.app.ui.components.SettingRow
 import com.studywithme.app.ui.components.Stepper
@@ -54,7 +59,7 @@ fun SettingsScreen(padding: PaddingValues, onOpenLock: () -> Unit) {
         Text(stringResource(R.string.settings_title), style = AppText.title)
         if (layout.twoPane) {
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); GoalCard(); DisplayCard(); NotificationCard(); TestAlertCard() }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); GoalCard(); DisplayCard(); NotificationCard(); BackupCard(); TestAlertCard() }
                 Column(Modifier.weight(1f)) { QuietCard() }
             }
         } else {
@@ -63,6 +68,7 @@ fun SettingsScreen(padding: PaddingValues, onOpenLock: () -> Unit) {
             DisplayCard()
             QuietCard()
             NotificationCard()
+            BackupCard()
             TestAlertCard()
         }
     }
@@ -185,6 +191,42 @@ private fun GoalCard() {
             stringResource(R.string.settings_goal_title), stringResource(R.string.duration_hm, minutes / 60, minutes % 60),
             { c.updateSettings { it.copy(dailyGoalMin = (it.dailyGoalMin - 30).coerceAtLeast(30)) } },
             { c.updateSettings { it.copy(dailyGoalMin = (it.dailyGoalMin + 30).coerceAtMost(720)) } },
+        )
+    }
+}
+
+@Composable
+private fun BackupCard() {
+    val c = LocalContainer.current
+    val w = LocalWarm.current
+    var status by remember { mutableStateOf<Int?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var confirmImport by remember { mutableStateOf(false) }
+    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        if (uri != null) c.scope.launch { busy = true; status = if (runCatching { c.backup.export(uri) }.isSuccess) R.string.backup_export_done else R.string.backup_export_fail; busy = false }
+    }
+    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) c.scope.launch { busy = true; status = if (runCatching { c.backup.import(uri) }.isSuccess) R.string.backup_import_done else R.string.backup_import_fail; busy = false }
+    }
+    val fileName = stringResource(R.string.backup_file_name, java.time.LocalDate.now().toString())
+    GlassCard(Modifier.fillMaxWidth()) {
+        SectionTitle(stringResource(R.string.backup_title))
+        Text(stringResource(R.string.backup_desc), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(bottom = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PrimaryButton(stringResource(R.string.backup_export), { if (!busy) export.launch(fileName) }, Modifier.weight(1f))
+            SoftButton(stringResource(R.string.backup_import), { if (!busy) confirmImport = true }, Modifier.weight(1f))
+        }
+        if (busy) Text(stringResource(R.string.backup_working), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(top = 10.dp))
+        status?.let { if (!busy) Text(stringResource(it), style = AppText.caption, color = if (it == R.string.backup_import_fail || it == R.string.backup_export_fail) w.accent else w.inkSoft, modifier = Modifier.padding(top = 10.dp)) }
+    }
+    if (confirmImport) {
+        AlertDialog(
+            onDismissRequest = { confirmImport = false },
+            containerColor = w.dialog, titleContentColor = w.ink, textContentColor = w.inkSoft,
+            title = { Text(stringResource(R.string.backup_confirm_title), style = AppText.bodyMedium) },
+            text = { Text(stringResource(R.string.backup_confirm_body), style = AppText.body) },
+            confirmButton = { TextAction(stringResource(R.string.backup_import), { confirmImport = false; import.launch(arrayOf("application/zip", "application/octet-stream", "application/x-zip-compressed")) }) },
+            dismissButton = { TextAction(stringResource(R.string.common_cancel), { confirmImport = false }, color = w.inkSoft) },
         )
     }
 }

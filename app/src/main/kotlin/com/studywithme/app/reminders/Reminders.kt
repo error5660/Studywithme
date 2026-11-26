@@ -16,6 +16,9 @@ import com.studywithme.app.R
 import com.studywithme.app.StudyApp
 import com.studywithme.app.data.CalendarEvent
 import com.studywithme.app.data.QuietMode
+import com.studywithme.app.data.nextDailyMs
+import com.studywithme.app.data.nextWeeklyMs
+import com.studywithme.app.data.studyDay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -62,15 +65,27 @@ class ReminderScheduler(private val context: Context) {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
-    fun schedule(events: List<CalendarEvent>) {
-        val at = nextReminderMs(events, System.currentTimeMillis(), ZoneId.systemDefault())
-        if (at == null) { alarms.cancel(pending()); return }
+    private fun arm(pi: PendingIntent, at: Long) {
         try {
-            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending())
+            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
         } catch (e: SecurityException) {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending()) // exact alarms revoked: late but not lost
+            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) // exact alarms revoked: late but not lost
         }
     }
+
+    private fun simplePending(code: Int, action: String) = PendingIntent.getBroadcast(
+        context, code, Intent(context, ReminderReceiver::class.java).setAction(action),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    fun schedule(events: List<CalendarEvent>) {
+        val at = nextReminderMs(events, System.currentTimeMillis(), ZoneId.systemDefault())
+        if (at == null) alarms.cancel(pending()) else arm(pending(), at)
+    }
+
+    /** Daily "wrong answers to review" reminder and the Sunday 21:00 weekly report: each is re-armed after it fires. */
+    fun scheduleDaily() = arm(simplePending(2, ACTION_REVIEW), nextDailyMs(System.currentTimeMillis(), REVIEW_HOUR))
+    fun scheduleWeekly() = arm(simplePending(3, ACTION_WEEKLY), nextWeeklyMs(System.currentTimeMillis()))
 
     private fun lockEndPending() = PendingIntent.getBroadcast(
         context, 1, Intent(context, ReminderReceiver::class.java).setAction(ACTION_LOCK_END),
@@ -78,19 +93,16 @@ class ReminderScheduler(private val context: Context) {
     )
 
     /** A separate exact alarm that ends the focus lock on time even if the app process was killed. */
-    fun scheduleLockEnd(endMs: Long) {
-        try {
-            alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endMs, lockEndPending())
-        } catch (e: SecurityException) {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endMs, lockEndPending())
-        }
-    }
+    fun scheduleLockEnd(endMs: Long) = arm(lockEndPending(), endMs)
 
     fun cancelLockEnd() = alarms.cancel(lockEndPending())
 
     companion object {
         const val ACTION_ALARM = "com.studywithme.app.REMINDER"
         const val ACTION_LOCK_END = "com.studywithme.app.LOCK_END"
+        const val ACTION_REVIEW = "com.studywithme.app.REVIEW"
+        const val ACTION_WEEKLY = "com.studywithme.app.WEEKLY"
+        const val REVIEW_HOUR = 18
     }
 }
 
@@ -139,6 +151,24 @@ class Notifier(private val context: Context) {
             .setAutoCancel(true).setContentIntent(open).build())
     }
 
+    private fun post(id: Int, title: String, text: String, quiet: QuietMode) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+        val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val channel = when (quiet) { QuietMode.Normal -> CH_NORMAL; QuietMode.Vibrate -> CH_VIBRATE; QuietMode.Silent -> CH_SILENT }
+        nm.notify(id, NotificationCompat.Builder(context, channel).setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title).setContentText(text).setAutoCancel(true).setContentIntent(open).build())
+    }
+
+    fun postReviewDue(count: Int, quiet: QuietMode) =
+        post(REVIEW_DUE_ID, context.getString(R.string.review_notif_title), context.getString(R.string.review_notif_body, count), quiet)
+
+    fun postWeeklyReport(totalMs: Long, prevMs: Long, quiet: QuietMode) {
+        fun fmt(ms: Long) = (ms / 60_000).toInt().let { context.getString(R.string.duration_hm, it / 60, it % 60) }
+        val diff = totalMs - prevMs
+        val change = context.getString(if (diff >= 0) R.string.report_change_up else R.string.report_change_down, fmt(kotlin.math.abs(diff)))
+        post(WEEKLY_REPORT_ID, context.getString(R.string.report_notif_title), context.getString(R.string.report_notif_body, fmt(totalMs), change), quiet)
+    }
+
     fun postLockEnded(quiet: QuietMode) {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
@@ -152,6 +182,8 @@ class Notifier(private val context: Context) {
     companion object {
         const val LOCK_ENDED_ID = 7002
         const val GOAL_REACHED_ID = 7003
+        const val REVIEW_DUE_ID = 7004
+        const val WEEKLY_REPORT_ID = 7005
         const val CH_LOCK = "lock_status"
         const val CH_NORMAL = "reminder_normal"
         const val CH_VIBRATE = "reminder_vibrate"
@@ -168,12 +200,27 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 val events = c.db.eventDao().getAll()
                 val quiet = c.settingsRepo.flow.first().quiet
-                if (intent.action == ReminderScheduler.ACTION_LOCK_END) c.lock.endIfExpired() else c.lock.restore() // restore covers reboot and app update
+                when (intent.action) {
+                    ReminderScheduler.ACTION_LOCK_END -> c.lock.endIfExpired()
+                    ReminderScheduler.ACTION_REVIEW -> c.db.noteDao().dueCount(studyDay(System.currentTimeMillis()).toEpochDay())
+                        .let { if (it > 0) c.notifier.postReviewDue(it, quiet) }
+                    ReminderScheduler.ACTION_WEEKLY -> {
+                        val now = System.currentTimeMillis()
+                        val r = c.reports.generate(com.studywithme.app.data.mondayOf(studyDay(now)), now)
+                        c.notifier.postWeeklyReport(r.totalMs, r.prevTotalMs, quiet)
+                    }
+                    else -> { // alarm for an event, reboot, app update, clock change: also catch up a missed weekly report
+                        c.lock.restore()
+                        c.reports.ensureLatest()?.let { c.notifier.postWeeklyReport(it.totalMs, it.prevTotalMs, quiet) }
+                    }
+                }
                 if (intent.action == ReminderScheduler.ACTION_ALARM) {
                     dueReminders(events, System.currentTimeMillis(), 2 * 60_000L, ZoneId.systemDefault())
                         .forEach { (e, _) -> c.notifier.postReminder(e, quiet) }
                 }
                 c.reminders.schedule(events)
+                c.reminders.scheduleDaily()
+                c.reminders.scheduleWeekly()
             } finally {
                 pending.finish()
             }

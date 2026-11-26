@@ -382,4 +382,141 @@
     <string name="goal_reached_body">%1$s 공부했어요. 수고했어요.</string>
     <string name="home_goal">목표의 %1$d%%</string>
     <string name="lock_timetable">시간표</string>
+
+    <!-- Widgets -->
+    <string name="widget_today_name">오늘 공부</string>
+    <string name="widget_overview_name">공부 한눈에</string>
+    <string name="widget_today_desc">오늘 공부한 시간을 보여줘요.</string>
+    <string name="widget_overview_desc">D-day, 오늘 공부 시간, 다음 일정을 보여줘요.</string>
+    <string name="widget_today_label">오늘 공부</string>
+    <string name="widget_next_label">다음 일정</string>
+    <string name="widget_no_event">예정된 일정이 없어요</string>
+    <string name="widget_no_exam">예정된 시험이 없어요</string>
+    <string name="widget_next_pattern">E HH:mm</string>
+
+    <!-- Notifications -->
+    <string name="review_notif_title">오늘 복습할 오답이 있어요</string>
+    <string name="review_notif_body">복습할 오답이 %1$d개 있어요.</string>
+    <string name="report_notif_title">주간 리포트가 도착했어요</string>
+    <string name="report_notif_body">이번 주 %1$s 공부했어요 · %2$s</string>
+    <string name="report_change_up">지난주보다 %1$s 늘었어요</string>
+    <string name="report_change_down">지난주보다 %1$s 줄었어요</string>
+
+    <!-- Tools cards -->
+    <string name="tools_notebook_title">오답노트</string>
+    <string name="tools_notebook_desc">틀린 문제를 사진으로 모으고 복습해요.</string>
+    <string name="tools_scores_title">시험 성적</string>
+    <string name="tools_scores_desc">점수와 등급, 목표를 기록해요.</string>
+    <string name="tools_open">열기</string>
+    <string name="tools_due_count">복습할 오답 %1$d개</string>
+
+    <!-- Wrong-answer notebook -->
+    <string name="note_title">오답노트</string>
+    <string name="note_add">추가</string>
+    <string name="note_filter_all">전체</string>
+    <string name="note_filter_due">복습 필요</string>
+    <string name="note_review_start">복습 시작 (%1$d)</string>
+    <string name="note_empty">아직 오답이 없어요. 틀린 문제를 사진으로 남겨 보세요.</string>
+    <string name="note_badge_due">복습 필요</string>
+    <string name="note_badge_stage">복습 %1$d/3</string>
+    <string name="note_badge_done">완료</string>
+    <string name="note_new_title">오답 추가</string>
+    <string name="note_edit_title">오답 수정</string>
+    <string name="note_photo_problem">문제 사진</string>
+    <string name="note_photo_answer">정답 사진 (선택)</string>
+    <string name="note_take">촬영</string>
+    <string name="note_gallery">갤러리</string>
+    <string name="note_photo_remove">사진 지우기</string>
+    <string name="note_memo_label">메모 (선택)</string>
+    <string name="note_tags_label">태그 (쉼표로 구분, 선택)</string>
+    <string name="note_subject_label">과목</string>
+    <string name="note_need_photo">문제 사진을 먼저 넣어 주세요.</string>
+    <string name="note_next_review">다음 복습 %1$s</string>
+    <string name="note_delete_title">이 오답을 삭제할까요?</string>
+    <string name="note_delete_body">사진도 함께 지워져요.</string>
+    <string name="note_show_answer">정답 보기</string>
+    <string name="note_hide_answer">정답 숨기기</string>
+    <string name="note_edit">수정</string>
+    <string name="note_review_hint">복습 일정은 1일, 3일, 7일 뒤예요. 틀리면 처음부터 다시 시작해요.</string>
+
+    <!-- Review -->
+    <string name="review_title">오답 복습</string>
+    <string name="review_progress">%1$d / %2$d</string>
+    <string name="review_show">정답과 메모 보기</string>
+    <string name="review_right">맞음</string>
+    <string name="review_wrong">틀림</string>
+    <string name="review_done_title">복습을 마쳤어요</string>
+    <string name="review_done_body">수고했어요. 틀린 문제는 내일 다시 나와요.</string>
+    <string name="review_none">오늘 복습할 오답이 없어요.</string>
+    <string name="lock_review">오답 복습</string>
+
+    <!-- Exam scores -->
+    <string name="scores_title">시험 성적</string>
+    <string name="scores_add_exam">시험 추가</string>
+    <string name="scores_exam_name">시험 이름 (예: 2026 2학기 1차)</string>
+    <string name="scores_scale_title">등급 방식</string>
+    <string name="scale_5">5등급제</string>
+    <string name="scale_ae">성취도 (A–E)</string>
+    <string name="scores_score">점수</string>
+    <string name="scores_save">저장</string>
+    <string name="scores_target_title">목표와 현재</string>
+    <string name="scores_current">현재</string>
+    <string name="scores_target">목표</string>
+    <string name="scores_gap_reached">목표를 이뤘어요</string>
+    <string name="scores_gap_more">목표까지 %1$d단계 남았어요</string>
+    <string name="scores_no_grade">아직 등급이 없어요</string>
+    <string name="scores_trend_title">등급 변화</string>
+    <string name="scores_trend_hint">위로 갈수록 좋은 등급이에요.</string>
+    <string name="scores_delete_exam">이 시험 지우기</string>
+    <string name="scores_delete_title">시험을 지울까요?</string>
+    <string name="scores_delete_body">이 시험의 점수도 함께 지워져요.</string>
+    <string name="scores_empty">시험을 추가하고 점수를 입력해 보세요.</string>
+    <string name="scores_entry_title">%1$s 성적</string>
+    <string name="grade_5">%1$d등급</string>
+    <string name="grade_none">–</string>
+    <string name="scores_no_target">목표 없음</string>
+
+    <!-- White noise -->
+    <string name="noise_title">백색소음</string>
+    <string name="noise_desc">공부(집중) 시간 동안 자동으로 재생돼요.</string>
+    <string name="noise_off">끔</string>
+    <string name="noise_rain">빗소리</string>
+    <string name="noise_cafe">카페</string>
+    <string name="noise_fan">선풍기</string>
+    <string name="noise_volume">소리 크기</string>
+    <string name="noise_preview">미리 듣기</string>
+
+    <!-- Weekly reports -->
+    <string name="log_tab_report">리포트</string>
+    <string name="report_empty">아직 리포트가 없어요. 일요일 밤 9시에 만들어져요.</string>
+    <string name="report_make_now">이번 주 리포트 미리 만들기</string>
+    <string name="report_total">총 공부 시간</string>
+    <string name="report_vs_last">지난주 대비</string>
+    <string name="report_best_day">가장 많이 한 날</string>
+    <string name="report_streak">연속 공부</string>
+    <string name="report_streak_value">%1$d일</string>
+    <string name="report_focus">평균 집중도</string>
+    <string name="report_no_focus">기록 없음</string>
+    <string name="report_phone">폰 사용 시간</string>
+    <string name="report_phone_none">권한이 없어 계산하지 못했어요</string>
+    <string name="report_early">일찍 푼 잠금</string>
+    <string name="report_count_value">%1$d번</string>
+    <string name="report_notes_added">추가한 오답</string>
+    <string name="report_notes_reviewed">복습한 오답</string>
+    <string name="report_items_value">%1$d개</string>
+    <string name="report_by_subject">과목별</string>
+
+    <!-- Backup -->
+    <string name="backup_title">백업</string>
+    <string name="backup_desc">모든 기록과 오답 사진을 ZIP 파일 하나로 저장하거나 불러와요. 잠금 비밀번호는 담기지 않아요.</string>
+    <string name="backup_export">내보내기</string>
+    <string name="backup_import">불러오기</string>
+    <string name="backup_export_done">백업 파일을 저장했어요.</string>
+    <string name="backup_export_fail">백업을 저장하지 못했어요.</string>
+    <string name="backup_import_done">백업을 불러왔어요.</string>
+    <string name="backup_import_fail">백업을 불러오지 못했어요. 파일을 확인해 주세요. 지금 데이터는 그대로예요.</string>
+    <string name="backup_confirm_title">백업을 불러올까요?</string>
+    <string name="backup_confirm_body">지금 있는 모든 기록이 지워지고 백업 내용으로 바뀌어요.</string>
+    <string name="backup_file_name">스터디윗미-백업-%1$s.zip</string>
+    <string name="backup_working">처리 중…</string>
 </resources>

@@ -27,6 +27,9 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,7 +49,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.studywithme.app.R
 import com.studywithme.app.data.Subject
 import com.studywithme.app.data.SubjectProgress
+import com.studywithme.app.data.studyDay
 import com.studywithme.app.ui.LocalContainer
+import com.studywithme.app.ui.LocalOpenOverlay
+import com.studywithme.app.ui.OVERLAY_NOTEBOOK
+import com.studywithme.app.ui.OVERLAY_SCORES
 import com.studywithme.app.ui.LocalSettings
 import com.studywithme.app.ui.components.Chip
 import com.studywithme.app.ui.components.ColorPicker
@@ -71,15 +78,73 @@ fun ToolsScreen(padding: PaddingValues) {
     val layout = rememberLayout()
     if (layout.twoPane) {
         Row(Modifier.fillMaxSize().padding(padding).padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) { ToolsTitle(); Spacer(Modifier.height(20.dp)); PomodoroCard() }
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) { ToolsTitle(); EntryCards(); PomodoroCard(); NoiseCard() }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) { Spacer(Modifier.height(24.dp)); ProgressCard(); SubjectsCard() }
         }
     } else {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding).padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             ToolsTitle()
+            EntryCards()
             PomodoroCard()
+            NoiseCard()
             ProgressCard()
             SubjectsCard()
+        }
+    }
+}
+
+/** Doors to the two full-screen tools. */
+@Composable
+private fun EntryCards() {
+    val c = LocalContainer.current
+    val w = LocalWarm.current
+    val open = LocalOpenOverlay.current
+    val now by c.tick.collectAsStateWithLifecycle(System.currentTimeMillis())
+    val due by remember(now / 60_000) { c.db.noteDao().observeDueCount(studyDay(now).toEpochDay()) }.collectAsStateWithLifecycle(0)
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        GlassCard(Modifier.fillMaxWidth(), onClick = { open(OVERLAY_NOTEBOOK) }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.tools_notebook_title), style = AppText.bodyMedium)
+                    Text(if (due > 0) stringResource(R.string.tools_due_count, due) else stringResource(R.string.tools_notebook_desc), style = AppText.caption, color = if (due > 0) w.accent else w.inkSoft)
+                }
+                Text(stringResource(R.string.tools_open), style = AppText.label, color = w.accent)
+            }
+        }
+        GlassCard(Modifier.fillMaxWidth(), onClick = { open(OVERLAY_SCORES) }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.tools_scores_title), style = AppText.bodyMedium)
+                    Text(stringResource(R.string.tools_scores_desc), style = AppText.caption, color = w.inkSoft)
+                }
+                Text(stringResource(R.string.tools_open), style = AppText.label, color = w.accent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoiseCard() {
+    val c = LocalContainer.current
+    val s = LocalSettings.current
+    val w = LocalWarm.current
+    var volume by remember(s.noiseVolume) { mutableFloatStateOf(s.noiseVolume.toFloat()) }
+    GlassCard(Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.noise_title), style = AppText.bodyMedium)
+        Text(stringResource(R.string.noise_desc), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(bottom = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(R.string.noise_off, R.string.noise_rain, R.string.noise_cafe, R.string.noise_fan).forEachIndexed { kind, label ->
+                Chip(stringResource(label), s.noiseKind == kind, { c.updateSettings { it.copy(noiseKind = kind) }; if (kind != 0) c.previewNoise() })
+            }
+        }
+        if (s.noiseKind != 0) {
+            Text(stringResource(R.string.noise_volume), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(top = 16.dp))
+            Slider(
+                volume, { volume = it }, valueRange = 0f..100f,
+                onValueChangeFinished = { c.updateSettings { it.copy(noiseVolume = volume.toInt()) } },
+                colors = SliderDefaults.colors(thumbColor = w.accent, activeTrackColor = w.accent, inactiveTrackColor = w.inkFaint.copy(alpha = 0.5f)),
+            )
+            TextAction(stringResource(R.string.noise_preview), { c.previewNoise() })
         }
     }
 }
