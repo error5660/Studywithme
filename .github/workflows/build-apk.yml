@@ -14,10 +14,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
-      - name: Install Android platform
+      # The runner already ships an Android SDK; accept licenses so Gradle can fetch the missing platform.
+      - name: Prepare Android SDK
         run: |
-          sdkmanager "platforms;android-37.2" "build-tools;36.0.0" || sdkmanager "platforms/android-37.2" "build-tools;36.0.0"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;36.0.0" || true
       - name: Test and build
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
       - uses: actions/upload-artifact@v4
