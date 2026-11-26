@@ -129,6 +129,16 @@ class Notifier(private val context: Context) {
         nm.notify(event.id.toInt(), n)
     }
 
+    fun postGoalReached(studied: String, quiet: QuietMode) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
+        val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val channel = when (quiet) { QuietMode.Normal -> CH_NORMAL; QuietMode.Vibrate -> CH_VIBRATE; QuietMode.Silent -> CH_SILENT }
+        nm.notify(GOAL_REACHED_ID, NotificationCompat.Builder(context, channel)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.goal_reached_title)).setContentText(context.getString(R.string.goal_reached_body, studied))
+            .setAutoCancel(true).setContentIntent(open).build())
+    }
+
     fun postLockEnded(quiet: QuietMode) {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
@@ -141,6 +151,7 @@ class Notifier(private val context: Context) {
 
     companion object {
         const val LOCK_ENDED_ID = 7002
+        const val GOAL_REACHED_ID = 7003
         const val CH_LOCK = "lock_status"
         const val CH_NORMAL = "reminder_normal"
         const val CH_VIBRATE = "reminder_vibrate"

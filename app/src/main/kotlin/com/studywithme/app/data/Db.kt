@@ -74,6 +74,13 @@ interface SessionDao {
 
     @Query("SELECT * FROM study_sessions WHERE endMs > :fromMs AND startMs < :toMs ORDER BY startMs")
     fun observeBetween(fromMs: Long, toMs: Long): Flow<List<StudySession>>
+
+    @Query("SELECT * FROM study_sessions WHERE endMs > :fromMs AND startMs < :toMs ORDER BY startMs")
+    suspend fun getBetween(fromMs: Long, toMs: Long): List<StudySession>
+
+    /** Stores the 1-5 focus score on every session that falls inside the block just finished. */
+    @Query("UPDATE study_sessions SET focusScore = :score WHERE startMs >= :fromMs AND endMs <= :toMs")
+    suspend fun rate(fromMs: Long, toMs: Long, score: Int)
 }
 
 /**
@@ -188,6 +195,24 @@ interface EarlyUnlockDao {
     fun observeCount(): Flow<Int>
 }
 
+/**
+ * A timetable cell the student painted by hand. [subjectId] == [ERASED] means "leave this cell empty"
+ * even though the timer would have filled it.
+ */
+@Entity(tableName = "manual_cells", primaryKeys = ["day", "slot"])
+data class ManualCell(val day: Long, val slot: Int, val subjectId: Long) {
+    companion object { const val ERASED = -1L }
+}
+
+@Dao
+interface ManualCellDao {
+    @Query("SELECT * FROM manual_cells WHERE day = :day")
+    fun observeDay(day: Long): Flow<List<ManualCell>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(cell: ManualCell)
+}
+
 @Dao
 interface ProgressDao {
     @Query("SELECT * FROM subject_progress")
@@ -201,9 +226,9 @@ interface ProgressDao {
 }
 
 @Database(
-    entities = [Subject::class, StudySession::class, CalendarEvent::class, Task::class, SubjectProgress::class, EarlyUnlock::class],
-    version = 3,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
+    entities = [Subject::class, StudySession::class, CalendarEvent::class, Task::class, SubjectProgress::class, EarlyUnlock::class, ManualCell::class],
+    version = 4,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -213,4 +238,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun progressDao(): ProgressDao
     abstract fun earlyUnlockDao(): EarlyUnlockDao
+    abstract fun manualCellDao(): ManualCellDao
 }

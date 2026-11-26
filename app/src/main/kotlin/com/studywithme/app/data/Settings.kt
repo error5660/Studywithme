@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +23,7 @@ data class Settings(
     val quiet: QuietMode = QuietMode.Normal,
     val autoDnd: Boolean = false,
     val night: Boolean = false,
+    val dailyGoalMin: Int = 360,
 )
 
 private val Context.dataStore by preferencesDataStore("settings")
@@ -36,6 +38,8 @@ private object Keys {
     val quiet = intPreferencesKey("quiet_mode")
     val autoDnd = booleanPreferencesKey("auto_dnd")
     val night = booleanPreferencesKey("night_mode")
+    val dailyGoalMin = intPreferencesKey("daily_goal_min")
+    val goalNotifiedDay = longPreferencesKey("goal_notified_day")
     val savedDndFilter = intPreferencesKey("saved_dnd_filter")
     val eventsSeeded = booleanPreferencesKey("events_seeded")
 }
@@ -52,6 +56,7 @@ private fun Preferences.toSettings(): Settings {
         quiet = QuietMode.entries.getOrElse(this[Keys.quiet] ?: 0) { d.quiet },
         autoDnd = this[Keys.autoDnd] ?: d.autoDnd,
         night = this[Keys.night] ?: d.night,
+        dailyGoalMin = this[Keys.dailyGoalMin] ?: d.dailyGoalMin,
     )
 }
 
@@ -70,6 +75,7 @@ class SettingsRepo(private val context: Context) {
             p[Keys.quiet] = s.quiet.ordinal
             p[Keys.autoDnd] = s.autoDnd
             p[Keys.night] = s.night
+            p[Keys.dailyGoalMin] = s.dailyGoalMin
         }
     }
 
@@ -84,5 +90,12 @@ class SettingsRepo(private val context: Context) {
 
     suspend fun markEventsSeeded() {
         context.dataStore.edit { it[Keys.eventsSeeded] = true }
+    }
+
+    /** The study day (epoch day) for which the "goal reached" notification was already sent. */
+    suspend fun goalNotifiedDay(): Long? = context.dataStore.data.first()[Keys.goalNotifiedDay]
+
+    suspend fun markGoalNotified(day: Long) {
+        context.dataStore.edit { it[Keys.goalNotifiedDay] = day }
     }
 }

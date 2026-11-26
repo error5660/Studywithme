@@ -67,8 +67,10 @@ fun LockScreen(onDone: () -> Unit) {
     val context = LocalContext.current
     var picked by remember { mutableStateOf<Long?>(null) }
     var early by remember { mutableIntStateOf(0) } // 0 none, 1 password, 2 waiting
+    var showTimetable by remember { mutableStateOf(false) }
 
     BackHandler(true) {} // the lock screen cannot be left with the back button
+    BackHandler(showTimetable) { showTimetable = false }
     val state = lock ?: return
     // Null above means "still loading"; once loaded, a finished lock closes this screen.
     LaunchedEffect(state.endMs, now / 1000) { if (!state.active(now)) onDone() }
@@ -113,6 +115,7 @@ fun LockScreen(onDone: () -> Unit) {
             if (timer.status != TimerStatus.Idle) SoftButton(stringResource(R.string.lock_timer_stop), { c.engine.stop() }, Modifier.weight(1.4f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextAction(stringResource(R.string.lock_timetable), { showTimetable = true }, color = w.inkSoft)
             TextAction(stringResource(R.string.lock_call), { context.startActivity(Intent(Intent.ACTION_DIAL).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }, color = w.inkSoft)
             TextAction(stringResource(R.string.lock_early), { early = 1 }, color = w.inkSoft)
         }
@@ -132,6 +135,13 @@ fun LockScreen(onDone: () -> Unit) {
         }
     }
 
+    if (showTimetable) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp)) {
+                TimetableScreen(embedded = true, onClose = { showTimetable = false })
+            }
+        }
+    }
     when (early) {
         1 -> PasswordGateDialog(onDismiss = { early = 0 }, onVerified = { early = 2 })
         2 -> EarlyUnlockWait(onKeep = { early = 0 }, onConfirm = { early = 0 })

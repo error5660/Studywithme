@@ -41,6 +41,9 @@ fun Settings.phaseLengthMs(phase: Phase): Long = 60_000L * when (phase) {
     Phase.LongBreak -> longBreakMin
 }
 
+/** A stretch of study that just ended; the UI asks "how was your focus?" and rates sessions inside it. */
+data class FocusWindow(val subjectId: Long?, val fromMs: Long, val toMs: Long)
+
 class TimerEngine(
     private val settings: () -> Settings,
     private val saveSession: (StudySession) -> Unit,
@@ -53,6 +56,18 @@ class TimerEngine(
     private val _phaseChanges = MutableSharedFlow<Phase>(extraBufferCapacity = 4)
     /** Emits the new phase whenever Pomodoro switches; used for alerts. */
     val phaseChanges: SharedFlow<Phase> = _phaseChanges.asSharedFlow()
+
+    private val _focusEnded = MutableSharedFlow<FocusWindow>(extraBufferCapacity = 4)
+    /** Fires when a study session stops or a Pomodoro focus block ends (and was at least a minute long). */
+    val focusEnded: SharedFlow<FocusWindow> = _focusEnded.asSharedFlow()
+    private var windowFromWall = 0L
+
+    private fun endWindow(subjectId: Long?) {
+        val from = windowFromWall
+        windowFromWall = 0
+        val to = wall()
+        if (from != 0L && to - from >= MIN_RATING_MS) _focusEnded.tryEmit(FocusWindow(subjectId, from, to))
+    }
 
     /** Set by the focus lock (Phase 3): while true, leaving the app does not pause the timer. */
     var lockActive = false
@@ -67,6 +82,7 @@ class TimerEngine(
             stop()
         }
         _state.value = TimerState(status = TimerStatus.Running, subjectId = subjectId, runStartRt = rt())
+        windowFromWall = wall()
     }
 
     fun pause(auto: Boolean = false) {
@@ -84,6 +100,7 @@ class TimerEngine(
     fun stop() {
         val s = _state.value
         if (s.running) settle(s)
+        if (s.status != TimerStatus.Idle) endWindow(s.subjectId)
         _state.value = TimerState()
     }
 
@@ -119,6 +136,7 @@ class TimerEngine(
             phaseBaseMs = 0,
             runStartRt = rt(),
         )
+        if (next == Phase.Focus) windowFromWall = wall() else endWindow(s.subjectId)
         _phaseChanges.tryEmit(next)
     }
 
@@ -139,5 +157,6 @@ class TimerEngine(
 
     companion object {
         const val MIN_SEGMENT_MS = 3_000L // ignore accidental taps
+        const val MIN_RATING_MS = 60_000L
     }
 }

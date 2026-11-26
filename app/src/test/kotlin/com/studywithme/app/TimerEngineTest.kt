@@ -9,6 +9,7 @@ import com.studywithme.app.timer.TimerEngine
 import com.studywithme.app.timer.TimerStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.launch
 import org.junit.Test
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -114,5 +115,35 @@ class TimerEngineTest {
         assertEquals(25 * min, t.totalMs)
         assertEquals(20 * min, t.bySubject[1L])
         assertEquals(5 * min, t.bySubject[2L])
+    }
+}
+
+class FocusWindowTest {
+    private val min = 60_000L
+    private var clock = 1_000_000L
+    private val engine = TimerEngine({ Settings(pomodoroOn = true, focusMin = 25, breakMin = 5) }, { }, { clock }, { clock })
+
+    @Test fun stoppingAfterAMinuteAsksForARating() {
+        val seen = mutableListOf<com.studywithme.app.timer.FocusWindow>()
+        val job = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined).launch { engine.focusEnded.collect { seen += it } }
+        engine.start(7); clock += 30_000; engine.stop()
+        assertEquals(0, seen.size)                       // 30 s is too short to rate
+        engine.start(7); clock += 3 * min; engine.stop()
+        assertEquals(1, seen.size)
+        assertEquals(7L, seen[0].subjectId)
+        job.cancel()
+    }
+
+    @Test fun pomodoroFocusBlockEndAsksForARatingAndBreakDoesNot() {
+        val seen = mutableListOf<com.studywithme.app.timer.FocusWindow>()
+        val job = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined).launch { engine.focusEnded.collect { seen += it } }
+        engine.start(1)
+        clock += 25 * min; engine.tick()                 // focus -> break: rate
+        assertEquals(1, seen.size)
+        clock += 5 * min; engine.tick()                  // break -> focus: nothing yet
+        assertEquals(1, seen.size)
+        clock += 2 * min; engine.stop()                  // second block stopped: rate
+        assertEquals(2, seen.size)
+        job.cancel()
     }
 }

@@ -13,6 +13,10 @@ import com.studywithme.app.data.AppDatabase
 import com.studywithme.app.data.Settings
 import com.studywithme.app.data.SettingsRepo
 import com.studywithme.app.data.seedCalendar
+import com.studywithme.app.data.studyDay
+import com.studywithme.app.data.studyDayStart
+import com.studywithme.app.data.DAY_MS
+import com.studywithme.app.usage.UsageHelper
 import com.studywithme.app.reminders.Notifier
 import com.studywithme.app.reminders.ReminderScheduler
 import com.studywithme.app.lock.LockController
@@ -58,6 +62,7 @@ class AppContainer(app: Application) {
         private set
 
     val alerter = Alerter(app)
+    val usage = UsageHelper(app)
     val notifier = Notifier(app)
     val reminders = ReminderScheduler(app)
 
@@ -120,6 +125,25 @@ class AppContainer(app: Application) {
         }
 
         lock.restore()
+
+        // "Daily goal reached" notification: checked every 30 s while a session is running, sent once per study day.
+        scope.launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(30_000)
+                if (!engine.state.value.running) continue
+                val now = System.currentTimeMillis()
+                val day = studyDay(now).toEpochDay()
+                if (settingsRepo.goalNotifiedDay() == day) continue
+                val start = studyDayStart(now)
+                val studied = db.sessionDao().getBetween(start, start + DAY_MS).sumOf { minOf(it.endMs, now) - maxOf(it.startMs, start) } +
+                    engine.state.value.liveFocusMs(SystemClock.elapsedRealtime())
+                if (studied >= settings.dailyGoalMin * 60_000L) {
+                    settingsRepo.markGoalNotified(day)
+                    val minutes = (studied / 60_000).toInt()
+                    notifier.postGoalReached(app.getString(R.string.duration_hm, minutes / 60, minutes % 60), settings.quiet)
+                }
+            }
+        }
 
         // Leaving the app pauses the timer (unless the focus lock is on).
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->

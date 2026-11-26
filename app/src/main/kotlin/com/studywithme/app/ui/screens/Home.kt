@@ -36,7 +36,9 @@ import com.studywithme.app.ui.LocalContainer
 import com.studywithme.app.ui.components.ColorDot
 import com.studywithme.app.ui.components.GlassCard
 import com.studywithme.app.ui.components.Hairline
+import com.studywithme.app.ui.LocalSettings
 import com.studywithme.app.ui.components.SectionTitle
+import com.studywithme.app.ui.components.ThinProgress
 import com.studywithme.app.ui.formatHms
 import com.studywithme.app.ui.rememberLayout
 import com.studywithme.app.ui.theme.AppText
@@ -100,6 +102,7 @@ fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit, onOpenLock: () -
 @Composable
 private fun Hero(totalMs: Long, numberStyle: androidx.compose.ui.text.TextStyle) {
     val w = LocalWarm.current
+    val goalMs = LocalSettings.current.dailyGoalMin * 60_000L
     val pattern = stringResource(R.string.date_pattern)
     val date = remember(pattern) { DateTimeFormatter.ofPattern(pattern, Locale.KOREAN).format(Instant.now().atZone(ZoneId.systemDefault())) }
     Column(Modifier.padding(top = 16.dp)) {
@@ -108,6 +111,9 @@ private fun Hero(totalMs: Long, numberStyle: androidx.compose.ui.text.TextStyle)
         Text(formatHms(totalMs), style = numberStyle, maxLines = 1)
         Spacer(Modifier.height(4.dp))
         Text(stringResource(R.string.home_today_label), style = AppText.body, color = w.inkSoft)
+        Spacer(Modifier.height(14.dp))
+        ThinProgress(totalMs.toFloat() / goalMs, Modifier.width(220.dp))
+        Text(stringResource(R.string.home_goal, (totalMs * 100 / goalMs).toInt()), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(top = 6.dp))
     }
 }
 

@@ -37,3 +37,7 @@ fun computeTotals(
     }
     return TodayTotals(map.values.sum(), map)
 }
+
+/** The moment a given study day begins (04:00 on that date). */
+fun studyDayStartOf(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): Long =
+    date.atStartOfDay(zone).plusHours(STUDY_DAY_START_HOUR.toLong()).toInstant().toEpochMilli()

@@ -60,8 +60,10 @@ import com.studywithme.app.ui.components.WarmBackground
 import com.studywithme.app.ui.components.LocalHaze
 import com.studywithme.app.ui.components.glass
 import com.studywithme.app.ui.screens.CalendarScreen
+import com.studywithme.app.ui.screens.FocusRatingHost
 import com.studywithme.app.ui.screens.HomeScreen
 import com.studywithme.app.ui.screens.LockSetupScreen
+import com.studywithme.app.ui.screens.LogScreen
 import com.studywithme.app.ui.screens.PlaceholderScreen
 import com.studywithme.app.ui.screens.SettingsScreen
 import com.studywithme.app.ui.screens.TimerScreen
@@ -93,6 +95,7 @@ fun StudyShell(content: @Composable () -> Unit) {
             Box(Modifier.fillMaxSize()) {
                 WarmBackground(haze)
                 content()
+                FocusRatingHost()
                 PulseOverlay()
             }
         }
@@ -199,7 +202,7 @@ private fun TabContent(tab: Int, padding: PaddingValues, onOpenTimer: () -> Unit
         when (t) {
             0 -> HomeScreen(padding, onOpenTimer, onOpenLock)
             1 -> CalendarScreen(padding)
-            2 -> PlaceholderScreen(R.string.tab_log, padding)
+            2 -> LogScreen(padding)
             3 -> ToolsScreen(padding)
             else -> SettingsScreen(padding, onOpenLock)
         }

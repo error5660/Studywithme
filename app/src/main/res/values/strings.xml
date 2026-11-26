@@ -317,4 +317,69 @@
     <!-- What the lock cannot prevent -->
     <string name="limits_title">이 잠금이 막지 못하는 것</string>
     <string name="limits_body">• 안전 모드: 전원을 껐다가 안전 모드로 부팅하면 이 앱의 잠금이 꺼져요.\n• 컴퓨터 연결: USB 디버깅이나 PC 프로그램으로 앱을 지우거나 폰을 초기화할 수 있어요.\n• 폰 초기화: 공장 초기화를 하면 잠금도 사라져요.\n• 시스템이 서비스를 멈추는 경우: 절전 기능이 접근성 서비스를 멈추면 잠금이 잠깐 풀릴 수 있어요. 앱의 배터리 설정을 \'제한 없음\'으로 해 두세요.\n• 상태바와 알림창: 열 수는 있지만, 거기서 다른 앱을 열면 바로 잠금 화면으로 돌아와요.\n• 허용한 앱 안에서 하는 일: 허용한 앱 안의 대화나 링크까지는 막지 못해요.\n• 비밀번호: 영어 4글자라서 다른 사람이 알아내기 쉬워요. 알면 일찍 풀 수 있어요. 일찍 풀 때는 60초를 기다려야 하고 기록이 남아요.\n• 전화와 긴급전화는 안전을 위해 항상 허용돼요.</string>
+
+    <!-- Log tab -->
+    <string name="log_title">기록</string>
+    <string name="log_tab_timetable">시간표</string>
+    <string name="log_tab_stats">통계</string>
+
+    <!-- Timetable -->
+    <string name="tt_edit">편집</string>
+    <string name="tt_edit_done">편집 끝</string>
+    <string name="tt_eraser">지우개</string>
+    <string name="tt_hint">칸을 누르면 칠해지고, 길게 눌러 끌면 여러 칸이 칠해져요. 좌우로 밀면 날짜가 바뀌어요.</string>
+    <string name="tt_total">공부 %1$s</string>
+    <string name="tt_close">닫기</string>
+
+    <!-- Focus score -->
+    <string name="focus_title">집중도는 어땠나요?</string>
+    <string name="focus_desc">방금 공부한 시간을 떠올려 보세요.</string>
+    <string name="focus_low">낮음</string>
+    <string name="focus_high">높음</string>
+    <string name="focus_skip">건너뛰기</string>
+
+    <!-- Stats -->
+    <string name="stats_goal_title">오늘 목표</string>
+    <string name="stats_goal_value">목표 %1$s · 달성 %2$d%%</string>
+    <string name="stats_streak">연속 %1$d일</string>
+    <string name="stats_streak_hint">하루 10분 이상 공부하면 이어져요.</string>
+    <string name="stats_week_title">주간 공부 시간</string>
+    <string name="stats_unit_hours">단위: 시간</string>
+    <string name="stats_legend_study">공부</string>
+    <string name="stats_legend_phone">폰</string>
+    <string name="stats_share_title">과목별 비율</string>
+    <string name="stats_heat_title">공부 잔디</string>
+    <string name="stats_heat_hint">날짜를 누르면 자세히 볼 수 있어요.</string>
+    <string name="stats_day_total">공부 %1$s</string>
+    <string name="stats_day_empty">이 날은 공부 기록이 없어요.</string>
+    <string name="stats_focus_title">집중도</string>
+    <string name="stats_focus_subject">과목별</string>
+    <string name="stats_focus_time">시간대별</string>
+    <string name="stats_focus_day">최근 7일</string>
+    <string name="stats_focus_none">아직 집중도 기록이 없어요. 공부를 끝낼 때 점수를 남겨 보세요.</string>
+    <string name="stats_focus_avg">%1$.1f</string>
+    <string name="tod_morning">아침 (06–12시)</string>
+    <string name="tod_afternoon">오후 (12–18시)</string>
+    <string name="tod_evening">저녁 (18–24시)</string>
+    <string name="tod_night">늦은 밤 (00–06시)</string>
+    <string name="stats_no_data">아직 공부 기록이 없어요.</string>
+
+    <!-- Phone usage -->
+    <string name="phone_title">폰 사용 vs 공부</string>
+    <string name="phone_study">공부</string>
+    <string name="phone_phone">폰</string>
+    <string name="phone_note">이 앱과 홈 화면에서 보낸 시간은 빼고 계산해요.</string>
+    <string name="phone_need_access">폰 사용 시간을 보려면 \'사용 정보 접근\' 권한이 필요해요.</string>
+    <string name="phone_guide_open">허용하는 방법 보기</string>
+    <string name="phone_guide_title">사용 정보 접근 허용하기</string>
+    <string name="phone_guide_steps">1. 아래 \'설정 열기\'를 눌러요.\n2. 목록에서 \'스터디윗미\'를 찾아 눌러요.\n3. \'사용 기록 접근 허용\'을 켜요.\n4. 이 앱으로 돌아오면 자동으로 확인돼요.</string>
+    <string name="phone_open_settings">설정 열기</string>
+
+    <!-- Goal setting + notification -->
+    <string name="settings_goal_title">하루 공부 목표</string>
+    <string name="settings_goal_desc">홈과 통계의 달성률, 잔디 색의 기준이 돼요.</string>
+    <string name="goal_reached_title">오늘 목표를 달성했어요</string>
+    <string name="goal_reached_body">%1$s 공부했어요. 수고했어요.</string>
+    <string name="home_goal">목표의 %1$d%%</string>
+    <string name="lock_timetable">시간표</string>
 </resources>

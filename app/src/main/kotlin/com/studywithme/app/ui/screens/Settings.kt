@@ -37,6 +37,7 @@ import com.studywithme.app.ui.components.PrimaryButton
 import com.studywithme.app.ui.components.SectionTitle
 import com.studywithme.app.ui.components.SelectRow
 import com.studywithme.app.ui.components.SettingRow
+import com.studywithme.app.ui.components.Stepper
 import com.studywithme.app.ui.components.TextAction
 import com.studywithme.app.ui.components.WarmSwitch
 import com.studywithme.app.ui.rememberLayout
@@ -53,11 +54,12 @@ fun SettingsScreen(padding: PaddingValues, onOpenLock: () -> Unit) {
         Text(stringResource(R.string.settings_title), style = AppText.title)
         if (layout.twoPane) {
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); DisplayCard(); NotificationCard(); TestAlertCard() }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); GoalCard(); DisplayCard(); NotificationCard(); TestAlertCard() }
                 Column(Modifier.weight(1f)) { QuietCard() }
             }
         } else {
             LockCard(onOpenLock)
+            GoalCard()
             DisplayCard()
             QuietCard()
             NotificationCard()
@@ -167,5 +169,22 @@ private fun NotificationCard() {
                 context.startActivity(Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName))
             })
         }
+    }
+}
+
+@Composable
+private fun GoalCard() {
+    val c = LocalContainer.current
+    val s = LocalSettings.current
+    val w = LocalWarm.current
+    GlassCard(Modifier.fillMaxWidth()) {
+        SectionTitle(stringResource(R.string.settings_goal_title))
+        Text(stringResource(R.string.settings_goal_desc), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(bottom = 4.dp))
+        val minutes = s.dailyGoalMin
+        Stepper(
+            stringResource(R.string.settings_goal_title), stringResource(R.string.duration_hm, minutes / 60, minutes % 60),
+            { c.updateSettings { it.copy(dailyGoalMin = (it.dailyGoalMin - 30).coerceAtLeast(30)) } },
+            { c.updateSettings { it.copy(dailyGoalMin = (it.dailyGoalMin + 30).coerceAtMost(720)) } },
+        )
     }
 }
