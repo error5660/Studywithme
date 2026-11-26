@@ -201,7 +201,7 @@ private fun TabContent(tab: Int, padding: PaddingValues, onOpenTimer: () -> Unit
             1 -> CalendarScreen(padding)
             2 -> PlaceholderScreen(R.string.tab_log, padding)
             3 -> ToolsScreen(padding)
-            else -> SettingsScreen(padding)
+            else -> SettingsScreen(padding, onOpenLock)
         }
     }
 }

@@ -44,7 +44,7 @@ import com.studywithme.app.ui.theme.AppText
 import com.studywithme.app.ui.theme.LocalWarm
 
 @Composable
-fun SettingsScreen(padding: PaddingValues) {
+fun SettingsScreen(padding: PaddingValues, onOpenLock: () -> Unit) {
     val layout = rememberLayout()
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding).padding(top = 16.dp),
@@ -53,10 +53,11 @@ fun SettingsScreen(padding: PaddingValues) {
         Text(stringResource(R.string.settings_title), style = AppText.title)
         if (layout.twoPane) {
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { DisplayCard(); NotificationCard(); TestAlertCard() }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); DisplayCard(); NotificationCard(); TestAlertCard() }
                 Column(Modifier.weight(1f)) { QuietCard() }
             }
         } else {
+            LockCard(onOpenLock)
             DisplayCard()
             QuietCard()
             NotificationCard()

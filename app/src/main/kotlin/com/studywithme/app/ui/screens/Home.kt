@@ -90,9 +90,9 @@ fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit, onOpenLock: () -
             Hero(totals.totalMs, heroStyle)
             ActiveCard(timer, subjects, totals, onOpenTimer)
             DdayCard()
+            LockCard(onOpenLock)
             TodoCard()
             SubjectList(subjects, timer, totals, onOpenTimer)
-            LockCard(onOpenLock)
         }
     }
 }
@@ -177,7 +177,7 @@ fun PlaceholderScreen(titleRes: Int, padding: PaddingValues) {
 
 /** Entry to the focus lock: kept low-key because the lock is a deliberate choice, not a daily default. */
 @Composable
-private fun LockCard(onOpen: () -> Unit) {
+fun LockCard(onOpen: () -> Unit) {
     val w = LocalWarm.current
     GlassCard(Modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
