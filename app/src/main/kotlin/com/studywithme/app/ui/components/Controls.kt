@@ -1,6 +1,28 @@
 package com.studywithme.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.maxLengthTrim
+import androidx.compose.foundation.text.input.then
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.input.KeyboardType
+import com.studywithme.app.ui.theme.SubjectPalette
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -152,4 +174,71 @@ fun ColorDot(color: Color, size: Dp = 10.dp) {
 @Composable
 fun Hairline(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().height(1.dp).background(LocalWarm.current.inkFaint.copy(alpha = 0.35f)))
+}
+
+private val DigitsOnly = InputTransformation { if (!asCharSequence().all { it.isDigit() }) revertAllChanges() }
+
+/** Single-line text field with a small label and an underline, matching the minimal look of the app. */
+@Composable
+fun LabeledTextField(label: String, state: TextFieldState, modifier: Modifier = Modifier, numeric: Boolean = false, maxLength: Int = 30) {
+    val w = LocalWarm.current
+    Column(modifier) {
+        Text(label, style = AppText.caption, color = w.inkSoft)
+        BasicTextField(
+            state = state,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            inputTransformation = if (numeric) DigitsOnly.then(InputTransformation.maxLengthTrim(5)) else InputTransformation.maxLengthTrim(maxLength),
+            keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text),
+            textStyle = AppText.body.copy(color = w.ink),
+            cursorBrush = SolidColor(w.accent),
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        )
+        Hairline(Modifier.padding(top = 6.dp))
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ColorPicker(selected: Int, onSelect: (Int) -> Unit) {
+    val w = LocalWarm.current
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SubjectPalette.forEach { c ->
+            val isSelected = c.toArgb() == selected
+            Box(
+                Modifier.size(32.dp).clip(CircleShape).background(c)
+                    .then(if (isSelected) Modifier.border(3.dp, w.dialog, CircleShape).border(5.dp, c, CircleShape) else Modifier)
+                    .clickable { onSelect(c.toArgb()) },
+            )
+        }
+    }
+}
+
+@Composable
+fun ThinProgress(progress: Float, modifier: Modifier = Modifier, color: Color = LocalWarm.current.accent) {
+    val w = LocalWarm.current
+    Box(modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(w.inkFaint.copy(alpha = 0.4f))) {
+        Box(Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f)).background(color))
+    }
+}
+
+/** Dialog in the app's warm style; [content] scrolls so tall forms still fit in landscape. */
+@Composable
+fun WarmDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    confirmText: String,
+    onConfirm: () -> Unit,
+    confirmEnabled: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val w = LocalWarm.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = w.dialog, titleContentColor = w.ink, textContentColor = w.ink,
+        shape = RoundedCornerShape(20.dp),
+        title = { Text(title, style = AppText.bodyMedium) },
+        text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp), content = content) },
+        confirmButton = { TextAction(confirmText, { if (confirmEnabled) onConfirm() }, color = if (confirmEnabled) w.accent else w.inkFaint) },
+        dismissButton = { TextAction(stringResource(R.string.common_cancel), onDismiss, color = w.inkSoft) },
+    )
 }

@@ -1,5 +1,6 @@
 package com.studywithme.app.data
 
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
@@ -8,6 +9,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.PrimaryKey
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
@@ -43,6 +45,9 @@ interface SubjectDao {
     @Query("SELECT * FROM subjects ORDER BY sortOrder, id")
     fun observeAll(): Flow<List<Subject>>
 
+    @Query("SELECT * FROM subjects ORDER BY sortOrder, id")
+    suspend fun getAll(): List<Subject>
+
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM subjects")
     suspend fun maxOrder(): Int
 
@@ -71,8 +76,122 @@ interface SessionDao {
     fun observeBetween(fromMs: Long, toMs: Long): Flow<List<StudySession>>
 }
 
-@Database(entities = [Subject::class, StudySession::class], version = 1, exportSchema = true)
+/**
+ * A calendar entry. A weekly event repeats on the weekday of [dateEpochDay], starting that day.
+ * shortcut: editing or deleting a weekly event changes the whole series, there are no per-day exceptions.
+ */
+@Entity(tableName = "events")
+data class CalendarEvent(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val kind: Int = KIND_EVENT,
+    val dateEpochDay: Long,
+    val startMin: Int,
+    val endMin: Int,
+    val weekly: Boolean = false,
+    val travelMin: Int = 0,
+    val reminderOn: Boolean = true,
+    /** Only used by exams, for the per-subject D-day. */
+    val subjectId: Long? = null,
+    val color: Int,
+) {
+    companion object {
+        const val KIND_EVENT = 0
+        const val KIND_EXAM = 1
+    }
+}
+
+@Entity(
+    tableName = "tasks",
+    foreignKeys = [ForeignKey(Subject::class, ["id"], ["subjectId"], onDelete = ForeignKey.SET_NULL)],
+    indices = [Index("subjectId"), Index("dayEpoch")],
+)
+data class Task(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val text: String,
+    val subjectId: Long? = null,
+    /** The study day (see studyDay()) this task belongs to. */
+    val dayEpoch: Long,
+    val done: Boolean = false,
+)
+
+/** Textbook progress for one subject: page range and the page the student is on. */
+@Entity(
+    tableName = "subject_progress",
+    foreignKeys = [ForeignKey(Subject::class, ["id"], ["subjectId"], onDelete = ForeignKey.CASCADE)],
+)
+data class SubjectProgress(
+    @PrimaryKey val subjectId: Long,
+    val startPage: Int,
+    val endPage: Int,
+    val currentPage: Int,
+)
+
+@Dao
+interface EventDao {
+    @Query("SELECT * FROM events ORDER BY startMin, id")
+    fun observeAll(): Flow<List<CalendarEvent>>
+
+    @Query("SELECT * FROM events")
+    suspend fun getAll(): List<CalendarEvent>
+
+    @Insert
+    suspend fun insert(event: CalendarEvent): Long
+
+    @Update
+    suspend fun update(event: CalendarEvent)
+
+    @Delete
+    suspend fun delete(event: CalendarEvent)
+}
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks WHERE dayEpoch = :day ORDER BY done, id")
+    fun observeDay(day: Long): Flow<List<Task>>
+
+    /** Unfinished tasks left over from earlier days. */
+    @Query("SELECT * FROM tasks WHERE done = 0 AND dayEpoch < :day ORDER BY dayEpoch, id")
+    fun observeStale(day: Long): Flow<List<Task>>
+
+    @Query("UPDATE tasks SET dayEpoch = :day WHERE done = 0 AND dayEpoch < :day")
+    suspend fun moveStaleTo(day: Long)
+
+    @Query("DELETE FROM tasks WHERE done = 0 AND dayEpoch < :day")
+    suspend fun deleteStale(day: Long)
+
+    @Insert
+    suspend fun insert(task: Task): Long
+
+    @Update
+    suspend fun update(task: Task)
+
+    @Delete
+    suspend fun delete(task: Task)
+}
+
+@Dao
+interface ProgressDao {
+    @Query("SELECT * FROM subject_progress")
+    fun observeAll(): Flow<List<SubjectProgress>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(progress: SubjectProgress)
+
+    @Delete
+    suspend fun delete(progress: SubjectProgress)
+}
+
+@Database(
+    entities = [Subject::class, StudySession::class, CalendarEvent::class, Task::class, SubjectProgress::class],
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    exportSchema = true,
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subjectDao(): SubjectDao
     abstract fun sessionDao(): SessionDao
+    abstract fun eventDao(): EventDao
+    abstract fun taskDao(): TaskDao
+    abstract fun progressDao(): ProgressDao
 }

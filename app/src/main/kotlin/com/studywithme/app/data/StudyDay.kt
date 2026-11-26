@@ -1,16 +1,19 @@
 package com.studywithme.app.data
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /** A "study day" starts at 04:00 so late-night study still counts for the day it belongs to. */
 const val STUDY_DAY_START_HOUR = 4
 const val DAY_MS = 24L * 60 * 60 * 1000 // shortcut: ignores DST, fine for Korea
 
-fun studyDayStart(nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): Long {
-    val shifted = Instant.ofEpochMilli(nowMs).atZone(zone).minusHours(STUDY_DAY_START_HOUR.toLong())
-    return shifted.toLocalDate().atStartOfDay(zone).plusHours(STUDY_DAY_START_HOUR.toLong()).toInstant().toEpochMilli()
-}
+/** The calendar date a moment belongs to, counting 00:00-03:59 as the previous day. */
+fun studyDay(nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate =
+    Instant.ofEpochMilli(nowMs).atZone(zone).minusHours(STUDY_DAY_START_HOUR.toLong()).toLocalDate()
+
+fun studyDayStart(nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): Long =
+    studyDay(nowMs, zone).atStartOfDay(zone).plusHours(STUDY_DAY_START_HOUR.toLong()).toInstant().toEpochMilli()
 
 class TodayTotals(val totalMs: Long, val bySubject: Map<Long?, Long>)
 

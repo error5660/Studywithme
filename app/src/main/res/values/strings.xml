@@ -88,7 +88,6 @@
 
     <!-- Settings -->
     <string name="settings_title">설정</string>
-    <string name="settings_display">화면</string>
     <string name="settings_night_mode">야간 모드</string>
     <string name="settings_night_mode_desc">어두운 방에서 눈이 편하도록 밝기를 낮춘 따뜻한 색으로 바꿔요.</string>
     <string name="settings_quiet_title">조용한 모드</string>
@@ -106,4 +105,119 @@
     <string name="dnd_open_settings">설정 열기</string>
     <string name="settings_test_alert">알림 미리 체험하기</string>
     <string name="settings_test_alert_desc">고른 방식으로 알림이 어떻게 울리는지 확인해요.</string>
+
+    <!-- Seed data. Class: weekday(1=Mon..7=Sun)|start|end|title|travel minutes|palette index -->
+    <string-array name="default_classes">
+        <item>1|21:00|23:00|수학학원|10|0</item>
+        <item>2|20:00|23:30|영어학원|30|2</item>
+        <item>3|20:00|22:00|수학학원|10|0</item>
+        <item>4|20:00|23:30|영어학원|30|2</item>
+        <item>6|13:30|16:00|영어학원|30|2</item>
+        <item>7|20:00|22:30|수학학원|10|0</item>
+    </string-array>
+    <!-- Exam: date|start|title|subject name (each exam lasts 50 minutes) -->
+    <string-array name="default_exams">
+        <item>2026-12-08|10:20|영어Ⅱ|영어</item>
+        <item>2026-12-08|11:40|기하|기하</item>
+        <item>2026-12-09|10:20|일본어 회화|일본어 회화</item>
+        <item>2026-12-09|11:40|미적분Ⅰ|미적분</item>
+        <item>2026-12-10|10:20|화법과 언어|화법과 언어</item>
+        <item>2026-12-10|11:40|세포와 물질대사|세포와 물질대사</item>
+        <item>2026-12-11|10:20|지구과학|지구과학</item>
+        <item>2026-12-11|11:40|역학과 에너지|역학과 에너지</item>
+    </string-array>
+
+    <!-- Calendar -->
+    <string name="cal_month_pattern">yyyy년 M월</string>
+    <string name="cal_day_pattern">M월 d일 EEEE</string>
+    <string name="cal_range_pattern">M월 d일</string>
+    <string name="cal_dow_pattern">E</string>
+    <string name="cal_prev">‹</string>
+    <string name="cal_next">›</string>
+    <string name="cal_today">오늘</string>
+    <string name="cal_mode_month">월</string>
+    <string name="cal_mode_week">주</string>
+    <string name="cal_mode_day">일</string>
+    <string name="cal_add">일정 추가</string>
+    <string name="cal_empty_day">이 날은 일정이 없어요.</string>
+    <string name="cal_weekly_badge">매주</string>
+    <string name="cal_travel_badge">이동 %1$d분</string>
+    <string name="cal_hour_label">%1$d</string>
+    <string-array name="weekday_short">
+        <item>일</item>
+        <item>월</item>
+        <item>화</item>
+        <item>수</item>
+        <item>목</item>
+        <item>금</item>
+        <item>토</item>
+    </string-array>
+
+    <!-- Event dialog -->
+    <string name="event_add_title">일정 추가</string>
+    <string name="event_edit_title">일정 수정</string>
+    <string name="event_title_label">제목</string>
+    <string name="event_kind_event">일정</string>
+    <string name="event_kind_exam">시험</string>
+    <string name="event_exam_subject">시험 과목</string>
+    <string name="event_date">날짜</string>
+    <string name="event_start">시작</string>
+    <string name="event_end">끝</string>
+    <string name="event_date_format">yyyy년 M월 d일 (E)</string>
+    <string name="event_weekly">매주 반복</string>
+    <string name="event_weekly_desc">같은 요일마다 되풀이돼요.</string>
+    <string name="event_travel">이동 시간</string>
+    <string name="event_reminder">알림</string>
+    <string name="event_reminder_desc">시작 시간에서 이동 시간을 뺀 때에 알려줘요.</string>
+    <string name="event_time_error">끝나는 시간이 시작보다 늦어야 해요.</string>
+    <string name="event_delete_title">일정을 삭제할까요?</string>
+    <string name="event_delete_body">매주 반복하는 일정은 모든 반복이 함께 삭제돼요.</string>
+    <string name="event_pick_time_title">시간 고르기</string>
+
+    <!-- Notifications -->
+    <string name="channel_reminder_normal">일정 알림 (소리와 진동)</string>
+    <string name="channel_reminder_vibrate">일정 알림 (진동만)</string>
+    <string name="channel_reminder_silent">일정 알림 (무음)</string>
+    <string name="reminder_depart">지금 출발할 시간이에요 · %1$s 시작 · 이동 %2$d분</string>
+    <string name="reminder_soon">%1$d분 뒤에 시작해요 · %2$s</string>
+    <string name="settings_notif_title">일정 알림</string>
+    <string name="settings_notif_desc">일정 시작 전에 알려주는 알림이에요.</string>
+    <string name="settings_notif_on">알림이 켜져 있어요</string>
+    <string name="settings_notif_off">알림이 꺼져 있어요. 켜야 일정 알림을 받을 수 있어요.</string>
+    <string name="settings_notif_open">알림 설정 열기</string>
+
+    <!-- D-day -->
+    <string name="dday_title">다가오는 시험</string>
+    <string name="dday_format">D-%1$d</string>
+    <string name="dday_today">D-DAY</string>
+    <string name="dday_range">%1$s ~ %2$s</string>
+    <string name="dday_more">외 %1$d개</string>
+
+    <!-- To-do -->
+    <string name="todo_title">오늘 할 일</string>
+    <string name="todo_count">%1$d / %2$d</string>
+    <string name="todo_add">추가</string>
+    <string name="todo_empty">오늘 할 일을 추가해 보세요.</string>
+    <string name="todo_add_title">할 일 추가</string>
+    <string name="todo_edit_title">할 일 수정</string>
+    <string name="todo_text_label">할 일</string>
+    <string name="todo_subject_label">과목 (선택)</string>
+    <string name="todo_no_subject">과목 없음</string>
+    <string name="carry_title">못 끝낸 할 일이 있어요</string>
+    <string name="carry_body">이전에 끝내지 못한 할 일이 %1$d개 있어요. 오늘로 옮길까요?</string>
+    <string name="carry_move">오늘로 옮기기</string>
+    <string name="carry_delete">삭제하기</string>
+    <string name="carry_later">나중에</string>
+
+    <!-- Progress tracker -->
+    <string name="progress_title">진도</string>
+    <string name="progress_hint">과목을 눌러 교재의 쪽수 범위와 현재 쪽을 적어요.</string>
+    <string name="progress_unset">설정하기</string>
+    <string name="progress_summary">%1$d쪽 / %2$d–%3$d쪽 · %4$d%%</string>
+    <string name="progress_dialog_title">%1$s 진도</string>
+    <string name="progress_start">시작 쪽</string>
+    <string name="progress_end">끝 쪽</string>
+    <string name="progress_current">현재 쪽</string>
+    <string name="progress_error">시작 쪽 ≤ 현재 쪽 ≤ 끝 쪽이 되도록 적어 주세요.</string>
+    <string name="progress_reset">진도 지우기</string>
 </resources>

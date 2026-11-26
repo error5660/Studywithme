@@ -1,11 +1,13 @@
 package com.studywithme.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.view.WindowManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -57,6 +59,7 @@ import com.studywithme.app.timer.TimerStatus
 import com.studywithme.app.ui.components.WarmBackground
 import com.studywithme.app.ui.components.LocalHaze
 import com.studywithme.app.ui.components.glass
+import com.studywithme.app.ui.screens.CalendarScreen
 import com.studywithme.app.ui.screens.HomeScreen
 import com.studywithme.app.ui.screens.PlaceholderScreen
 import com.studywithme.app.ui.screens.SettingsScreen
@@ -85,11 +88,24 @@ fun StudyRoot() {
         }
         CompositionLocalProvider(LocalContainer provides container, LocalSettings provides settings, LocalHaze provides haze) {
             KeepScreenOnWhileRunning()
+            AskNotificationPermission()
             Box(Modifier.fillMaxSize()) {
                 WarmBackground(haze)
                 AppContent()
                 PulseOverlay()
             }
+        }
+    }
+}
+
+/** Asks for the notification permission on first launch; reminders cannot show without it. */
+@Composable
+private fun AskNotificationPermission() {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }
@@ -112,12 +128,14 @@ private fun AppContent() {
     val container = LocalContainer.current
     val status = container.engine.state.collectAsStateWithLifecycle().value.status
     var timerOpen by rememberSaveable { mutableStateOf(false) }
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     // The timer screen only makes sense while a session exists.
     val showTimer = timerOpen && status != TimerStatus.Idle
 
-    MainScaffold(onOpenTimer = { timerOpen = true })
-    AnimatedVisibility(showTimer, enter = fadeIn(tween(250)), exit = fadeOut(tween(200))) {
-        TimerScreen(onClose = { timerOpen = false })
+    // One screen at a time: composing both would blur two sets of glass cards at once.
+    Crossfade(showTimer, animationSpec = tween(260)) { timer ->
+        if (timer) TimerScreen(onClose = { timerOpen = false })
+        else MainScaffold(tab, { tab = it }, onOpenTimer = { timerOpen = true })
     }
     BackHandler(showTimer) { timerOpen = false }
 }
@@ -125,8 +143,7 @@ private fun AppContent() {
 private val TabLabels = listOf(R.string.tab_home, R.string.tab_calendar, R.string.tab_log, R.string.tab_tools, R.string.tab_settings)
 
 @Composable
-private fun MainScaffold(onOpenTimer: () -> Unit) {
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+private fun MainScaffold(tab: Int, onTab: (Int) -> Unit, onOpenTimer: () -> Unit) {
     val layout = rememberLayout()
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val dir = LocalLayoutDirection.current
@@ -134,7 +151,7 @@ private fun MainScaffold(onOpenTimer: () -> Unit) {
     if (layout.rail) {
         Row(Modifier.fillMaxSize()) {
             GlassRail(
-                tab, { tab = it },
+                tab, onTab,
                 Modifier.padding(start = insets.calculateLeftPadding(dir) + 12.dp, top = insets.calculateTopPadding() + 12.dp, bottom = insets.calculateBottomPadding() + 12.dp)
                     .width(112.dp).fillMaxHeight(),
             )
@@ -157,7 +174,7 @@ private fun MainScaffold(onOpenTimer: () -> Unit) {
                 onOpenTimer,
             )
             GlassBottomBar(
-                tab, { tab = it },
+                tab, onTab,
                 Modifier.align(Alignment.BottomCenter)
                     .padding(start = insets.calculateLeftPadding(dir) + 16.dp, end = insets.calculateRightPadding(dir) + 16.dp, bottom = insets.calculateBottomPadding() + 12.dp),
             )
@@ -170,7 +187,7 @@ private fun TabContent(tab: Int, padding: PaddingValues, onOpenTimer: () -> Unit
     Crossfade(tab, animationSpec = tween(220), modifier = Modifier.widthIn(max = 1100.dp)) { t ->
         when (t) {
             0 -> HomeScreen(padding, onOpenTimer)
-            1 -> PlaceholderScreen(R.string.tab_calendar, padding)
+            1 -> CalendarScreen(padding)
             2 -> PlaceholderScreen(R.string.tab_log, padding)
             3 -> ToolsScreen(padding)
             else -> SettingsScreen(padding)

@@ -77,8 +77,10 @@ fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Hero(totals.totalMs, heroStyle)
                 ActiveCard(timer, subjects, totals, onOpenTimer)
+                DdayCard()
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                TodoCard()
                 SubjectList(subjects, timer, totals, onOpenTimer)
             }
         }
@@ -86,6 +88,8 @@ fun HomeScreen(padding: PaddingValues, onOpenTimer: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding), verticalArrangement = Arrangement.spacedBy(24.dp)) {
             Hero(totals.totalMs, heroStyle)
             ActiveCard(timer, subjects, totals, onOpenTimer)
+            DdayCard()
+            TodoCard()
             SubjectList(subjects, timer, totals, onOpenTimer)
         }
     }

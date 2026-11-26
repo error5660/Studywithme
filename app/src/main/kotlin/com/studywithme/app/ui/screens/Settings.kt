@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.studywithme.app.R
@@ -52,12 +53,13 @@ fun SettingsScreen(padding: PaddingValues) {
         Text(stringResource(R.string.settings_title), style = AppText.title)
         if (layout.twoPane) {
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { DisplayCard(); TestAlertCard() }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { DisplayCard(); NotificationCard(); TestAlertCard() }
                 Column(Modifier.weight(1f)) { QuietCard() }
             }
         } else {
             DisplayCard()
             QuietCard()
+            NotificationCard()
             TestAlertCard()
         }
     }
@@ -145,5 +147,24 @@ private fun TestAlertCard() {
         Text(stringResource(R.string.settings_test_alert_desc), style = AppText.caption, color = w.inkSoft)
         Spacer(Modifier.height(12.dp))
         PrimaryButton(stringResource(R.string.settings_test_alert), { c.alerter.alert(s.quiet) }, Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun NotificationCard() {
+    val context = LocalContext.current
+    val w = LocalWarm.current
+    var resumes by remember { mutableIntStateOf(0) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
+    val on = remember(resumes) { NotificationManagerCompat.from(context).areNotificationsEnabled() }
+    GlassCard(Modifier.fillMaxWidth()) {
+        SectionTitle(stringResource(R.string.settings_notif_title))
+        Text(stringResource(R.string.settings_notif_desc), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(bottom = 8.dp))
+        Text(stringResource(if (on) R.string.settings_notif_on else R.string.settings_notif_off), style = AppText.body, color = if (on) w.ink else w.accent)
+        if (!on) {
+            TextAction(stringResource(R.string.settings_notif_open), {
+                context.startActivity(Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName))
+            })
+        }
     }
 }

@@ -12,6 +12,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.studywithme.app.data.AppDatabase
 import com.studywithme.app.data.Settings
 import com.studywithme.app.data.SettingsRepo
+import com.studywithme.app.data.seedCalendar
+import com.studywithme.app.reminders.Notifier
+import com.studywithme.app.reminders.ReminderScheduler
 import com.studywithme.app.timer.Alerter
 import com.studywithme.app.timer.DndController
 import com.studywithme.app.timer.TimerEngine
@@ -53,6 +56,11 @@ class AppContainer(app: Application) {
         private set
 
     val alerter = Alerter(app)
+    val notifier = Notifier(app)
+    val reminders = ReminderScheduler(app)
+
+    /** True once the user chose "later" on the carry-over dialog, so it is not shown again until the next launch. */
+    var carryPromptDismissed = false
     val dnd = DndController(app, settingsRepo)
 
     val engine = TimerEngine(
@@ -83,6 +91,15 @@ class AppContainer(app: Application) {
                 lastPomodoro = it.pomodoroOn
             }
         }
+        // First launch after install/update: fill the calendar with the weekly classes and exams, once.
+        scope.launch(Dispatchers.IO) {
+            if (!settingsRepo.eventsSeeded()) {
+                seedCalendar(db, app.resources)
+                settingsRepo.markEventsSeeded()
+            }
+        }
+        // Whenever events change (including the seed above) re-arm the next reminder alarm.
+        scope.launch { db.eventDao().observeAll().collect { reminders.schedule(it) } }
         scope.launch { while (isActive) { delay(500); engine.tick() } }
         scope.launch { engine.phaseChanges.collect { alerter.alert(settings.quiet) } }
 

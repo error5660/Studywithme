@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.studywithme.app.ui.theme.LocalWarm
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -27,6 +29,7 @@ val LocalHaze = staticCompositionLocalOf<HazeState> { error("HazeState was not p
 val GlassShape = RoundedCornerShape(20.dp)
 
 /** Frosted glass: real backdrop blur, a warm tint, a thin white border, an inner top highlight and a very soft shadow. */
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun Modifier.glass(shape: Shape = GlassShape): Modifier {
     val w = LocalWarm.current
@@ -35,7 +38,9 @@ fun Modifier.glass(shape: Shape = GlassShape): Modifier {
         .shadow(14.dp, shape, ambientColor = w.shadow, spotColor = w.shadow)
         .clip(shape)
         .hazeEffect(haze) {
-            blurRadius = 28.dp
+            blurRadius = 24.dp
+            // Blur at 1/3 resolution: far cheaper on the GPU and visually identical for a soft frosted look.
+            inputScale = HazeInputScale.Auto
             tints = listOf(HazeTint(w.glassTint))
             noiseFactor = 0.04f
         }

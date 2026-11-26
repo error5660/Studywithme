@@ -37,6 +37,7 @@ private object Keys {
     val autoDnd = booleanPreferencesKey("auto_dnd")
     val night = booleanPreferencesKey("night_mode")
     val savedDndFilter = intPreferencesKey("saved_dnd_filter")
+    val eventsSeeded = booleanPreferencesKey("events_seeded")
 }
 
 private fun Preferences.toSettings(): Settings {
@@ -77,5 +78,11 @@ class SettingsRepo(private val context: Context) {
 
     suspend fun setSavedDndFilter(value: Int?) {
         context.dataStore.edit { if (value == null) it.remove(Keys.savedDndFilter) else it[Keys.savedDndFilter] = value }
+    }
+
+    suspend fun eventsSeeded(): Boolean = context.dataStore.data.first()[Keys.eventsSeeded] ?: false
+
+    suspend fun markEventsSeeded() {
+        context.dataStore.edit { it[Keys.eventsSeeded] = true }
     }
 }

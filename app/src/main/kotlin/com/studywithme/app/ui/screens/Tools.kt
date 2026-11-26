@@ -45,13 +45,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.studywithme.app.R
 import com.studywithme.app.data.Subject
+import com.studywithme.app.data.SubjectProgress
 import com.studywithme.app.ui.LocalContainer
 import com.studywithme.app.ui.LocalSettings
 import com.studywithme.app.ui.components.Chip
+import com.studywithme.app.ui.components.ColorPicker
 import com.studywithme.app.ui.components.ColorDot
 import com.studywithme.app.ui.components.GlassCard
 import com.studywithme.app.ui.components.Hairline
+import com.studywithme.app.ui.components.LabeledTextField
 import com.studywithme.app.ui.components.SoftButton
+import com.studywithme.app.ui.components.ThinProgress
+import com.studywithme.app.ui.components.WarmDialog
 import com.studywithme.app.ui.components.Stepper
 import com.studywithme.app.ui.components.TextAction
 import com.studywithme.app.ui.components.WarmSwitch
@@ -67,12 +72,13 @@ fun ToolsScreen(padding: PaddingValues) {
     if (layout.twoPane) {
         Row(Modifier.fillMaxSize().padding(padding).padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) { ToolsTitle(); Spacer(Modifier.height(20.dp)); PomodoroCard() }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) { Spacer(Modifier.height(44.dp)); SubjectsCard() }
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) { Spacer(Modifier.height(24.dp)); ProgressCard(); SubjectsCard() }
         }
     } else {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding).padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             ToolsTitle()
             PomodoroCard()
+            ProgressCard()
             SubjectsCard()
         }
     }
@@ -206,16 +212,7 @@ private fun SubjectDialog(
                     Hairline(Modifier.padding(top = 6.dp))
                 }
                 Text(stringResource(R.string.subject_color_label), style = AppText.caption, color = w.inkSoft)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SubjectPalette.forEach { c ->
-                        val selected = c.toArgb() == color
-                        Box(
-                            Modifier.size(32.dp).clip(CircleShape).background(c)
-                                .then(if (selected) Modifier.border(3.dp, w.dialog, CircleShape).border(5.dp, c, CircleShape) else Modifier)
-                                .clickable { color = c.toArgb() },
-                        )
-                    }
-                }
+                ColorPicker(color) { color = it }
                 if (onDelete != null) TextAction(stringResource(R.string.common_delete), { confirmDelete = true }, color = w.inkSoft)
             }
         },
@@ -233,5 +230,74 @@ private fun SubjectDialog(
             confirmButton = { TextAction(stringResource(R.string.common_delete), onDelete) },
             dismissButton = { TextAction(stringResource(R.string.common_cancel), { confirmDelete = false }, color = w.inkSoft) },
         )
+    }
+}
+
+@Composable
+private fun ProgressCard() {
+    val c = LocalContainer.current
+    val w = LocalWarm.current
+    val subjects by c.db.subjectDao().observeAll().collectAsStateWithLifecycle(emptyList())
+    val progress by c.db.progressDao().observeAll().collectAsStateWithLifecycle(emptyList())
+    var editing by remember { mutableStateOf<Subject?>(null) }
+
+    GlassCard(Modifier.fillMaxWidth(), padding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)) {
+        Text(stringResource(R.string.progress_title), style = AppText.bodyMedium)
+        Text(stringResource(R.string.progress_hint), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(bottom = 4.dp))
+        subjects.forEachIndexed { i, s ->
+            if (i > 0) Hairline()
+            val p = progress.firstOrNull { it.subjectId == s.id }
+            val ratio = p?.let { ((it.currentPage - it.startPage).toFloat() / (it.endPage - it.startPage)).coerceIn(0f, 1f) } ?: 0f
+            Column(Modifier.fillMaxWidth().clickable { editing = s }.padding(vertical = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ColorDot(Color(s.color), 10.dp)
+                    Spacer(Modifier.width(14.dp))
+                    Text(s.name, style = AppText.body, modifier = Modifier.weight(1f))
+                    if (p == null) Text(stringResource(R.string.progress_unset), style = AppText.caption, color = w.accent)
+                    else Text("${(ratio * 100).toInt()}%", style = AppText.number, color = w.ink)
+                }
+                if (p != null) {
+                    Spacer(Modifier.height(8.dp))
+                    ThinProgress(ratio, color = Color(s.color))
+                    Text(
+                        stringResource(R.string.progress_summary, p.currentPage, p.startPage, p.endPage, (ratio * 100).toInt()),
+                        style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+            }
+        }
+    }
+    editing?.let { s -> ProgressDialog(s, progress.firstOrNull { it.subjectId == s.id }) { editing = null } }
+}
+
+@Composable
+private fun ProgressDialog(subject: Subject, existing: SubjectProgress?, onDismiss: () -> Unit) {
+    val c = LocalContainer.current
+    val w = LocalWarm.current
+    val start = rememberTextFieldState(existing?.startPage?.toString().orEmpty())
+    val end = rememberTextFieldState(existing?.endPage?.toString().orEmpty())
+    val cur = rememberTextFieldState(existing?.currentPage?.toString().orEmpty())
+    val s = start.text.toString().toIntOrNull()
+    val e = end.text.toString().toIntOrNull()
+    val p = cur.text.toString().toIntOrNull()
+    val valid = s != null && e != null && p != null && e > s && p in s..e
+
+    WarmDialog(
+        title = stringResource(R.string.progress_dialog_title, subject.name),
+        onDismiss = onDismiss,
+        confirmText = stringResource(R.string.common_save),
+        confirmEnabled = valid,
+        onConfirm = {
+            c.scope.launch { c.db.progressDao().upsert(SubjectProgress(subject.id, s!!, e!!, p!!)) }
+            onDismiss()
+        },
+    ) {
+        LabeledTextField(stringResource(R.string.progress_start), start, numeric = true)
+        LabeledTextField(stringResource(R.string.progress_end), end, numeric = true)
+        LabeledTextField(stringResource(R.string.progress_current), cur, numeric = true)
+        if (!valid && (start.text.isNotEmpty() || end.text.isNotEmpty() || cur.text.isNotEmpty())) {
+            Text(stringResource(R.string.progress_error), style = AppText.caption, color = w.accent)
+        }
+        if (existing != null) TextAction(stringResource(R.string.progress_reset), { c.scope.launch { c.db.progressDao().delete(existing) }; onDismiss() }, color = w.inkSoft)
     }
 }
