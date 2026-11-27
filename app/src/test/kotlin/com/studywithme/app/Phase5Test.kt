@@ -171,3 +171,21 @@ class Phase5Test {
         assertNotNull(decodeBackup(extended))
     }
 }
+
+class NowPlayingTest {
+    private data class S(val pkg: String, val playing: Boolean)
+    private fun pick(vararg s: S) = com.studywithme.app.music.pickSession(s.toList(), { it.pkg }, { it.playing })
+
+    @Test fun aPlayingAppWinsOverAPausedSpotify() {
+        assertEquals("youtube", pick(S("com.spotify.music", false), S("youtube", true))?.pkg)
+    }
+
+    @Test fun spotifyWinsWhenBothArePlayingOrBothPaused() {
+        assertEquals("com.spotify.music", pick(S("melon", true), S("com.spotify.music", true))?.pkg)
+        assertEquals("com.spotify.music", pick(S("melon", false), S("com.spotify.music", false))?.pkg)
+    }
+
+    @Test fun nothingToShowWithoutSessions() {
+        assertNull(pick())
+    }
+}

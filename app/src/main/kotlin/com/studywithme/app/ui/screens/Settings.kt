@@ -59,7 +59,7 @@ fun SettingsScreen(padding: PaddingValues, onOpenLock: () -> Unit) {
         Text(stringResource(R.string.settings_title), style = AppText.title)
         if (layout.twoPane) {
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); GoalCard(); DisplayCard(); NotificationCard(); BackupCard(); TestAlertCard() }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { LockCard(onOpenLock); GoalCard(); DisplayCard(); MusicCard(); NotificationCard(); BackupCard(); TestAlertCard() }
                 Column(Modifier.weight(1f)) { QuietCard() }
             }
         } else {
@@ -67,6 +67,7 @@ fun SettingsScreen(padding: PaddingValues, onOpenLock: () -> Unit) {
             GoalCard()
             DisplayCard()
             QuietCard()
+            MusicCard()
             NotificationCard()
             BackupCard()
             TestAlertCard()
@@ -228,5 +229,29 @@ private fun BackupCard() {
             confirmButton = { TextAction(stringResource(R.string.backup_import), { confirmImport = false; import.launch(arrayOf("application/zip", "application/octet-stream", "application/x-zip-compressed")) }) },
             dismissButton = { TextAction(stringResource(R.string.common_cancel), { confirmImport = false }, color = w.inkSoft) },
         )
+    }
+}
+
+/** Notification access lets the timer show the song playing in Spotify; this card explains and opens the setting. */
+@Composable
+private fun MusicCard() {
+    val c = LocalContainer.current
+    val w = LocalWarm.current
+    val context = LocalContext.current
+    var resumes by remember { mutableIntStateOf(0) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
+    val granted = remember(resumes) { c.nowPlaying.hasAccess() }
+    GlassCard(Modifier.fillMaxWidth()) {
+        SectionTitle(stringResource(R.string.music_title))
+        Text(stringResource(R.string.music_desc), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(bottom = 8.dp))
+        Text(stringResource(if (granted) R.string.music_on else R.string.music_off), style = AppText.body, color = if (granted) w.ink else w.accent)
+        if (!granted) {
+            Text(stringResource(R.string.music_steps), style = AppText.caption, color = w.inkSoft, modifier = Modifier.padding(top = 8.dp))
+            TextAction(stringResource(R.string.music_open), {
+                val component = android.content.ComponentName(context, com.studywithme.app.music.MediaListener::class.java).flattenToString()
+                val direct = Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS).putExtra(AndroidSettings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, component)
+                runCatching { context.startActivity(direct) }.onFailure { context.startActivity(Intent(AndroidSettings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+            })
+        }
     }
 }

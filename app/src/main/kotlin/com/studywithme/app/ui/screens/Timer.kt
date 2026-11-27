@@ -57,6 +57,7 @@ import com.studywithme.app.ui.LocalContainer
 import com.studywithme.app.ui.LocalSettings
 import com.studywithme.app.ui.components.ColorDot
 import com.studywithme.app.ui.components.GlassCard
+import com.studywithme.app.ui.components.NowPlaying
 import com.studywithme.app.ui.components.PrimaryButton
 import com.studywithme.app.ui.components.SoftButton
 import com.studywithme.app.ui.components.TextAction
@@ -117,6 +118,8 @@ fun TimerScreen(onClose: () -> Unit) {
     now.hashCode() // read so this screen recomposes every second
 
     ImmersiveWhile(desk)
+    // follow the music player only while the timer is on screen
+    DisposableEffect(Unit) { c.nowPlaying.start(); onDispose { c.nowPlaying.stop() } }
     BackHandler(deskForced && !layout.landscape) { deskForced = false }
 
     val onToggle = { if (timer.running) c.engine.pause() else c.engine.resume() }
@@ -159,6 +162,7 @@ private fun FullTimer(
             Spacer(Modifier.height(10.dp))
             StatusLine(timer, Modifier)
         }
+        NowPlaying(Modifier.align(Alignment.CenterHorizontally).widthIn(max = 480.dp).padding(bottom = 20.dp))
         Column(Modifier.align(Alignment.CenterHorizontally).widthIn(max = 480.dp).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PrimaryButton(stringResource(if (timer.running) R.string.timer_pause else R.string.timer_resume), onToggle, Modifier.weight(2f))
@@ -201,6 +205,7 @@ private fun DeskClock(
             Text(clock, style = AppText.number.copy(fontSize = androidx.compose.ui.unit.TextUnit(28f, androidx.compose.ui.unit.TextUnitType.Sp)), color = w.inkSoft)
             StatusLine(timer, Modifier.padding(top = 8.dp))
         }
+        NowPlaying(Modifier.align(Alignment.TopStart).padding(8.dp).widthIn(max = 320.dp), artSize = 44.dp)
         AnimatedVisibility(controls, Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), enter = fadeIn(), exit = fadeOut()) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 PrimaryButton(stringResource(if (timer.running) R.string.timer_pause else R.string.timer_resume), onToggle)

@@ -77,6 +77,7 @@ class AppContainer(private val app: Application) {
     val reports = ReportService(db, usage)
     val backup = BackupManager(app, db, settingsRepo, photos)
     val noise = NoiseController(scope)
+    val nowPlaying = com.studywithme.app.music.NowPlayingWatcher(app)
 
     /** True for a few seconds after "미리 듣기" is pressed, so the noise can be tried without starting the timer. */
     val noisePreview = MutableStateFlow(false)
