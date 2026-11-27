@@ -21,7 +21,27 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class MediaListener : NotificationListenerService()
 
-data class Track(val title: String, val artist: String, val art: Bitmap?, val tint: Int?, val playing: Boolean)
+data class Track(
+    val title: String,
+    val artist: String,
+    val art: Bitmap?,
+    val tint: Int?,
+    val playing: Boolean,
+    /** Name of the player app, e.g. "Spotify". */
+    val appName: String = "",
+    val durationMs: Long = 0,
+    /** Position reported by the player at [positionAtRt] (elapsedRealtime). */
+    val positionMs: Long = 0,
+    val positionAtRt: Long = 0,
+    val speed: Float = 1f,
+    val canSeek: Boolean = false,
+) {
+    /** Where the song is now: the player only reports a position now and then, so playing time is added on top. */
+    fun positionAt(nowRt: Long): Long {
+        val p = if (playing) positionMs + ((nowRt - positionAtRt) * speed).toLong() else positionMs
+        return if (durationMs > 0) p.coerceIn(0, durationMs) else p.coerceAtLeast(0)
+    }
+}
 
 const val SPOTIFY = "com.spotify.music"
 
@@ -38,6 +58,7 @@ class NowPlayingWatcher(private val context: Context) {
     private val component = ComponentName(context, MediaListener::class.java)
     private val handler = Handler(Looper.getMainLooper())
     private var controllers: List<MediaController> = emptyList()
+    private var current: MediaController? = null
     private var users = 0
 
     private val callback = object : MediaController.Callback() {
@@ -65,6 +86,7 @@ class NowPlayingWatcher(private val context: Context) {
         manager.removeOnActiveSessionsChangedListener(sessionsListener)
         controllers.forEach { it.unregisterCallback(callback) }
         controllers = emptyList()
+        current = null
         _track.value = null
     }
 
@@ -80,8 +102,10 @@ class NowPlayingWatcher(private val context: Context) {
     private fun refresh() {
         val live = controllers.filter { it.metadata != null && it.playbackState?.state.let { s -> s == PlaybackState.STATE_PLAYING || s == PlaybackState.STATE_PAUSED } }
         val c = pickSession(live, { it.packageName }, { it.isPlaying() })
+        current = c
         val m = c?.metadata
         if (c == null || m == null) { _track.value = null; return }
+        val state = c.playbackState
         val art = m.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: m.getBitmap(MediaMetadata.METADATA_KEY_ART) ?: m.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
         val previous = _track.value
         _track.value = Track(
@@ -90,8 +114,20 @@ class NowPlayingWatcher(private val context: Context) {
             art = art,
             tint = if (art != null && art == previous?.art) previous.tint else art?.let(::averageColor),
             playing = c.isPlaying(),
+            appName = runCatching { context.packageManager.run { getApplicationLabel(getApplicationInfo(c.packageName, 0)).toString() } }.getOrDefault(""),
+            durationMs = m.getLong(MediaMetadata.METADATA_KEY_DURATION),
+            positionMs = state?.position ?: 0,
+            positionAtRt = state?.lastPositionUpdateTime ?: 0,
+            speed = state?.playbackSpeed?.takeIf { it > 0f } ?: 1f,
+            canSeek = (state?.actions ?: 0L) and PlaybackState.ACTION_SEEK_TO != 0L,
         )
     }
+
+    // Controls go to the player that is shown. Shuffle, repeat and "like" are not part of Android's standard media controls.
+    fun playPause() { current?.let { if (it.isPlaying()) it.transportControls.pause() else it.transportControls.play() } }
+    fun next() { current?.transportControls?.skipToNext() }
+    fun previous() { current?.transportControls?.skipToPrevious() }
+    fun seekTo(ms: Long) { current?.transportControls?.seekTo(ms) }
 
     /** The cover's average color, used to tint the glass card the way Spotify tints its player. */
     private fun averageColor(bmp: Bitmap): Int? = runCatching {

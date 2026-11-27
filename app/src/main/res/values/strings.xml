@@ -528,4 +528,10 @@
     <string name="music_steps">1. 아래 \'설정 열기\'를 눌러요.\n2. \'스터디윗미\'의 알림 접근을 켜요.\n3. \'제한된 설정\'이라며 막히면, 접근성 때처럼 앱 정보 → 오른쪽 위 점 세 개(⋮) → \'제한된 설정 허용\'을 누른 뒤 다시 켜요.</string>
     <string name="music_open">설정 열기</string>
     <string name="music_unknown_title">제목 없음</string>
+    <string name="music_open_player">재생 화면 열기</string>
+    <string name="music_playing_from">%1$s에서 재생 중</string>
+    <string name="music_prev">이전 곡</string>
+    <string name="music_next">다음 곡</string>
+    <string name="music_play">재생</string>
+    <string name="music_pause">일시정지</string>
 </resources>

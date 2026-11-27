@@ -112,6 +112,8 @@ fun TimerScreen(onClose: () -> Unit) {
     val now by c.tick.collectAsStateWithLifecycle(System.currentTimeMillis())
     val subject = subjects.firstOrNull { it.id == timer.subjectId }
     var deskForced by rememberSaveable { mutableStateOf(false) }
+    var playerOpen by rememberSaveable { mutableStateOf(false) }
+    val openPlayer = { playerOpen = true }
     // Sideways = desk clock; the button forces it in portrait too.
     val desk = deskForced || layout.landscape
     val display = rememberDisplay(timer, settings)
@@ -121,23 +123,25 @@ fun TimerScreen(onClose: () -> Unit) {
     // follow the music player only while the timer is on screen
     DisposableEffect(Unit) { c.nowPlaying.start(); onDispose { c.nowPlaying.stop() } }
     BackHandler(deskForced && !layout.landscape) { deskForced = false }
+    BackHandler(playerOpen) { playerOpen = false }
 
     val onToggle = { if (timer.running) c.engine.pause() else c.engine.resume() }
     Box(Modifier.fillMaxSize()) {
         if (desk) {
-            DeskClock(subject, timer, display, now, onToggle, onStop = { c.engine.stop() }, onClose = {
+            DeskClock(subject, timer, display, now, onToggle, onStop = { c.engine.stop() }, onOpenPlayer = openPlayer, onClose = {
                 if (deskForced && !layout.landscape) deskForced = false else onClose()
             })
         } else {
-            FullTimer(subject, timer, display, settings, onToggle, onStop = { c.engine.stop() }, onClose, onDesk = { deskForced = true })
+            FullTimer(subject, timer, display, settings, onToggle, onStop = { c.engine.stop() }, onClose, onDesk = { deskForced = true }, onOpenPlayer = openPlayer)
         }
+        if (playerOpen) MusicPlayer(onClose = { playerOpen = false })
     }
 }
 
 @Composable
 private fun FullTimer(
     subject: Subject?, timer: TimerState, display: Display, settings: Settings,
-    onToggle: () -> Unit, onStop: () -> Unit, onClose: () -> Unit, onDesk: () -> Unit,
+    onToggle: () -> Unit, onStop: () -> Unit, onClose: () -> Unit, onDesk: () -> Unit, onOpenPlayer: () -> Unit,
 ) {
     val c = LocalContainer.current
     val w = LocalWarm.current
@@ -162,7 +166,7 @@ private fun FullTimer(
             Spacer(Modifier.height(10.dp))
             StatusLine(timer, Modifier)
         }
-        NowPlaying(Modifier.align(Alignment.CenterHorizontally).widthIn(max = 480.dp).padding(bottom = 20.dp))
+        NowPlaying(Modifier.align(Alignment.CenterHorizontally).widthIn(max = 480.dp).padding(bottom = 20.dp), onOpen = onOpenPlayer)
         Column(Modifier.align(Alignment.CenterHorizontally).widthIn(max = 480.dp).padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PrimaryButton(stringResource(if (timer.running) R.string.timer_pause else R.string.timer_resume), onToggle, Modifier.weight(2f))
@@ -184,7 +188,7 @@ private fun FullTimer(
 @Composable
 private fun DeskClock(
     subject: Subject?, timer: TimerState, display: Display, nowMs: Long,
-    onToggle: () -> Unit, onStop: () -> Unit, onClose: () -> Unit,
+    onToggle: () -> Unit, onStop: () -> Unit, onOpenPlayer: () -> Unit, onClose: () -> Unit,
 ) {
     val w = LocalWarm.current
     var controls by remember { mutableStateOf(false) }
@@ -205,7 +209,7 @@ private fun DeskClock(
             Text(clock, style = AppText.number.copy(fontSize = androidx.compose.ui.unit.TextUnit(28f, androidx.compose.ui.unit.TextUnitType.Sp)), color = w.inkSoft)
             StatusLine(timer, Modifier.padding(top = 8.dp))
         }
-        NowPlaying(Modifier.align(Alignment.TopStart).padding(8.dp).widthIn(max = 320.dp), artSize = 44.dp)
+        NowPlaying(Modifier.align(Alignment.TopStart).padding(8.dp).widthIn(max = 320.dp), artSize = 44.dp, onOpen = onOpenPlayer)
         AnimatedVisibility(controls, Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), enter = fadeIn(), exit = fadeOut()) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 PrimaryButton(stringResource(if (timer.running) R.string.timer_pause else R.string.timer_resume), onToggle)

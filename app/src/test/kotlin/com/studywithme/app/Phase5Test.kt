@@ -189,3 +189,16 @@ class NowPlayingTest {
         assertNull(pick())
     }
 }
+
+class TrackPositionTest {
+    private fun track(playing: Boolean) = com.studywithme.app.music.Track("t", "a", null, null, playing, durationMs = 153_000, positionMs = 100_000, positionAtRt = 1_000)
+
+    @Test fun playingTrackMovesOnFromTheLastReportedPosition() {
+        assertEquals(105_000L, track(true).positionAt(6_000))
+    }
+
+    @Test fun pausedTrackStaysPutAndNothingRunsPastTheEnd() {
+        assertEquals(100_000L, track(false).positionAt(60_000))
+        assertEquals(153_000L, track(true).positionAt(999_000))
+    }
+}

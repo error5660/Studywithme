@@ -8,6 +8,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,25 +40,26 @@ import com.studywithme.app.ui.theme.LocalWarm
 
 /** Shows the song playing in Spotify (or another player) as a small glass card; hidden when nothing plays. */
 @Composable
-fun NowPlaying(modifier: Modifier = Modifier, artSize: Dp = 52.dp) {
+fun NowPlaying(modifier: Modifier = Modifier, artSize: Dp = 52.dp, onOpen: () -> Unit = {}) {
     val c = LocalContainer.current
     val track by c.nowPlaying.track.collectAsStateWithLifecycle()
     // keep the last song on screen while the card fades out
     val last = remember { arrayOfNulls<Track>(1) }
     track?.let { last[0] = it }
     AnimatedVisibility(track != null, modifier, enter = fadeIn() + slideInVertically { it / 3 }, exit = fadeOut() + slideOutVertically { it / 3 }) {
-        last[0]?.let { NowPlayingCard(it, artSize) }
+        last[0]?.let { NowPlayingCard(it, artSize, onOpen) }
     }
 }
 
 @Composable
-private fun NowPlayingCard(t: Track, artSize: Dp) {
+private fun NowPlayingCard(t: Track, artSize: Dp, onOpen: () -> Unit) {
     val w = LocalWarm.current
     val shape = RoundedCornerShape(18.dp)
     val tint = t.tint?.let { Color(it) }
     val art = remember(t.art) { t.art?.asImageBitmap() }
     Row(
-        Modifier.glass(shape).background(tint?.copy(alpha = 0.22f) ?: Color.Transparent).padding(10.dp).alpha(if (t.playing) 1f else 0.6f),
+        Modifier.glass(shape).background(tint?.copy(alpha = 0.22f) ?: Color.Transparent)
+            .clickable(onClickLabel = stringResource(R.string.music_open_player), onClick = onOpen).padding(10.dp).alpha(if (t.playing) 1f else 0.6f),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(artSize).clip(RoundedCornerShape(10.dp)).background(tint ?: w.accentSoft)) {
